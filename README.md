@@ -1,5 +1,5 @@
 # Bussi - how to share a VW California with two families...
-![das Bild von der Idee](./public/Bussi.png
+![das Bild von der Idee](./public/bussi.png
 "Bussi Teilung")
 
 
