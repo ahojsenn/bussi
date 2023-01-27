@@ -7,7 +7,7 @@ export default {
     '@pinia/nuxt',
   ],
   app: {
-    baseURL: '/Bussi/'
+    baseURL: '/bussi/'
   }
 
 }
