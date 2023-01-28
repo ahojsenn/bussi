@@ -6,8 +6,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "deploy": "gh-pages -d .output",
-    "nuxtversion": "nuxt info"
+    "deploy": "touch .output/.nojekyll && gh-pages --dotfiles -d .output"
   },
   "devDependencies": {
     "nuxt": "^3.1.1",

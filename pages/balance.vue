@@ -1,10 +1,9 @@
 <template lang="pug">
 div 
   YearSwitch 
-  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen
-
-  div(v-if="ERRORS.bookings.length > 0") 
-    a.errors(href='#' @click="selectToRender(ERRORS)")  Errors:  {{ ERRORS.bookings.length  }}
+  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen  
+  div(v-if="bs.findAccount('Bussi', 'Errors') .bookings.length > 0") 
+    a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors') .bookings.length  }}
 
   div Kilometer: {{ allKm() }} km
   div Benzin: {{ allLiter() }} Liter
@@ -99,8 +98,8 @@ await accountStore.loadDataFromGoogle()
 const accountBezeichnungen = accountStore.accountBezeichnungen
 const accountNames = accountStore.accountNames
 let allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-let bs = reactive(new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod))  
-const ERRORS = bs.findAccount('Bussi', 'Errors')
+let bs = reactive(new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)) 
+const ERRORS = bs.findAccount("System", "Errors") 
 /*now we have an bussi accountsystem */
 
 const vueInstance = getCurrentInstance()
@@ -129,7 +128,7 @@ const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + l
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
 const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
-const bookingIsTanken = (booking: HauptbuchBooking) => +booking.kmSinceLastFuelFill != 0 || "Tanken".indexOf(booking.description) > 0
+const bookingIsTanken = (booking: HauptbuchBooking) => +(booking.kmSinceLastFuelFill || "0") !== 0 || "Tanken".indexOf(booking.description) > 0
 
 
 //bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden.currentPeriod)

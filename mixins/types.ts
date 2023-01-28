@@ -24,8 +24,8 @@ export class HauptbuchBooking {
     amount: string,
     description: string,
     key: string,
-    kmSinceLastEntry?: string,
-    kmSinceLastFuelFill?: string,
+    kmSinceLastEntry: "0",
+    kmSinceLastFuelFill?: "0",
     consumption?: number,
     rowNr?: number,
   ) {
@@ -41,7 +41,7 @@ export class HauptbuchBooking {
     this.amount = amount === '' ? "0" : amount // set to = if string is empty
     this.description = description
     this.key = key
-    this.rowNr = rowNr
+    this.rowNr = rowNr || 0
   }
 }
 
@@ -68,7 +68,7 @@ export class Booking {
     this.soll = soll
     this.haben = haben
     this.description = description
-    this.kmStart = kmStart
+    this.kmStart = kmStart || 0
   }
 }
 
@@ -101,10 +101,12 @@ export class BussiAccountSystem {
   accounts = [] as Array<Account>
   hauptbuchBookings = [] as Array<HauptbuchBooking>
   Errors = {} as Account
+  Errors1 = {} as Account
   Reparaturkasse = {} as Account
   constructor(stakeholder = [] as Array<string>, accounts = [] as Array<string>, hauptbuchBookings = [] as Array<HauptbuchBooking>) {
     this.hauptbuchBookings = hauptbuchBookings
     this.Errors = new Account("Errors", "system")
+    this.Errors1 = new Account("Errors1", "system")
     this.Reparaturkasse = new Account("Reparaturkasse", "Bussi")
     for (const owner of stakeholder)
       for (const name of accounts)
@@ -118,17 +120,4 @@ export class BussiAccountSystem {
   saldierenEuro(owner: string): number {
     return Math.round(this.accounts.filter(a => a.owner === owner).reduce((acc, cv) => cv.name !== "Kilometer" ? acc += cv.saldo() : acc, 0) * 100) / 100
   }
-  /*
-  findAccountY(owner: string, name: string, year: string): Account {
-    if (!Number(year))
-      return this.accounts.find(a => (a.name === name) && (a.owner === owner))
-        || this.Errors
-    else {
-      const a = new Account(name, owner)
-      a.bookings = R.clone(this.accounts.find(a => (a.name === name) && (a.owner === owner)).bookings)
-        .filter(b => b.date.substring(0, 4) === year)
-      return a
-    }
-  }
-  */
 }
