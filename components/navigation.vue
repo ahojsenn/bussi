@@ -21,9 +21,8 @@ nav.menu
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 
-console.log("navigation.vue")
 </script>
 
 

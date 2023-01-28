@@ -1,7 +1,6 @@
 /* the spreadesheet url */
-
+const appConfig = useAppConfig()
 const GURL = 'https://docs.google.com/spreadsheets/d/'
-const GKEY = '1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M'
-const GdataUrl = GURL + GKEY
+const GdataUrl = GURL + appConfig.GKEY
 
 export const URL = GdataUrl

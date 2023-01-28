@@ -5,7 +5,7 @@ div.background
     slot 
 </template>
 
-<style >
+<style>
 @font-face {
  font-family: 'supermarker'; /* Gewünschter Name */
  src:  url('/SupermarkerVARTrial.woff2') format('woff2'), /* SupermarkerVARTrial.woff2 oder SupermarkerVARTrial.ttf */

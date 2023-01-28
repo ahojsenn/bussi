@@ -1,1 +1,0 @@
-import{b as o,o as s,h as e,D as t}from"./entry.d021a17a.js";const n=""+new URL("bussi.72bf2d32.png",import.meta.url).href,r=e("h1",null,[e("a",{href:"https://miro.com/app/board/uXjVPyPTepA=/"},"Bussi")],-1),c=e("img",{src:n},null,-1),a=[r,c];function i(d,l){return s(),o("div",null,a)}const _={},m=t(_,[["render",i]]);export{m as default};

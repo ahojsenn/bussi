@@ -7,10 +7,10 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "deploy": "gh-pages -d .output",
-    "version": "nuxt --version"
+    "nuxtversion": "nuxt info"
   },
   "devDependencies": {
-    "nuxt": "^3.1.0",
+    "nuxt": "^3.1.1",
     "pug": "^3.0.2",
     "pug-plain-loader": "^1.1.0"
   },
