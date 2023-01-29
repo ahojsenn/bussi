@@ -51,11 +51,12 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
       /* Tankungen buchen und aktuellen Benzinpreis fixieren */
       if (bookingIsTanken(booking)) {
-        benzinpreis = Math.round(1000 * euroToNumber(booking.amount) / liter(booking)) / 1000
+        const amount = Math.round(100 * euroToNumber(booking.amount)) / 100
+        benzinpreis = Math.round(1000 * amount / liter(booking)) / 1000
         verbrauch = berechneVerbrauch(liter(booking), kmPerFill(booking))
         const from = bs.findAccount("Bussi", "Konto 2")
         const to = bs.findAccount(splitAccount, "Konto 2")
-        const text = booking.account + " Tanken " + liter(booking) + " Liter, "
+        const text = booking.account + ": Tanken für " + amount + "€, " + liter(booking) + " Liter, "
           + "<br> Verbrauch: " + verbrauch + " l/100km, "
           + "<br>" + splitAccount + "-->" + "Bussi"
           + "<br>Benzinpreis: " + benzinpreis + " €/l"
@@ -88,21 +89,20 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
         //logd("Kilometer: ", splits, bk, from, to)
         /* Kilometer verbucht, nun Benzinpreis verbuchen */
-        const from1 = bs.findAccount(splitAccount, "Ausgleichskonto")
+        const from1 = bs.findAccount(splitAccount, "Konto 2")
         const to1 = bs.findAccount("Bussi", "Konto 2")
         const text1 = "Benzingeld: " + benzingeld + " € für " + km + " km"
-          + "Benzinpreis = " + Math.round(benzinpreis * verbrauch) / 100 + " €/km"
+          + ", Benzinpreis: " + benzinpreis + "€/L, Verbrauch: " + verbrauch + " ergibt: " + Math.round(benzinpreis * verbrauch) / 100 + " €/km"
         const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1)
         book(bk1, from1, to1)
 
 
         // Reparaturkosten aus kilometern verbuchen
         const from2 = bs.findAccount("Bussi", "Konto 3")
-        const to2 = bs.findAccount(splitAccount, "Ausgleichskonto")
+        const to2 = bs.findAccount(splitAccount, "Konto 3")
         const bk2 = new Booking(booking.nr, booking.date, 0, reppausch,
-          "Reparaturkosten aus Kilometern von " + perioden.reparaturpauschale(perioden.currentPeriod) + " €/km"
-          + "<br> Reparaturpauschale: " + reppausch + " € für " + km + " km"
-          + "<br> " + splitAccount + " --> Bussi"
+          "Reparaturpauschale " + perioden.reparaturpauschale(perioden.currentPeriod) + " €/km * " + km + " km "
+          + "= " + reppausch + " € : " + splitAccount + " --> Bussi"
         )
         book(bk2, from2, to2)
       }
@@ -123,20 +123,28 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
 
       /* Ausgleichszahlunen berücksichtigen */
-      const isAusgleichszahlung = (b: HauptbuchBooking): boolean => (
-        b.key.split(" ")[0] === "an"
-        && b.key.split(" ").length === 2
-        && shStore.personen.indexOf(booking.key.split(" ")[1]) > -1
-      )
+      const isAusgleichszahlung = (b: HauptbuchBooking): boolean => {
+        const receipient = (booking
+          && booking.key
+          && typeof booking.key === "string"
+          && booking.key.split(" ").length > 0) ? booking.key.split(" ")[1] : ""
+        // logd("isAusgleichszahlung: ", b.key.split(" ")[0], receipient, b, booking.key)
+        return b.key.split(" ")[0] === "an"
+          && receipient !== ""
+          && (
+            receipient === "Bussi" ||
+            shStore.personen.indexOf(receipient) >= 0
+          )
+      }
+
       if (isAusgleichszahlung(booking)) {
-        logd("Ausgleichszahlung: ", booking)
+        // logd("Ausgleichszahlung: ", booking)
         const from = bs.findAccount(splitAccount, "Ausgleichskonto")
         const receipient = booking.key.split(" ")[1]
         const to = bs.findAccount(receipient, "Ausgleichskonto")
-        const text = booking.account + " " + booking.description + " " + euroToNumber(booking.amount) + " " + booking.amount
-        const bk = new Booking(booking.nr, booking.date, euroToNumber(booking.amount), 0, text, +booking.km)
+        const text = booking.account + "-->" + receipient + ": " + booking.description + " " + euroToNumber(booking.amount) + " " + booking.amount
+        const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
         book(bk, from, to)
-
         bookingWasUsed = true
       }
 
@@ -148,7 +156,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
       /* Fehler buchen */
       if (!bookingWasUsed) {
-        logd("Fehler: ", booking)
+        logd("Fehler: ", booking, isAusgleichszahlung(booking))
         const from = bs.findAccount("System", "Errors")
         const to = bs.findAccount("System", "Errors1")
         const text = booking.account + " Konto 1 " + booking.description + " "

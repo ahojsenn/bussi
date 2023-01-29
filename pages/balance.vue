@@ -24,22 +24,23 @@ div
         td {{ sh }}
           a(href="#" @click="selectToRender(bs.findAccount(sh,'Kilometer'))") 
             div Kilometer: {{ bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod) }} km
-            div Saldo: {{ bs.saldierenEuro(sh) }} €
+          div 
+            b Saldo: {{ bs.saldierenEuro(sh) }} €
         td 
           table.inner(:style="{width: '100%'}")
             th.inner.z100z Kontobezeichnung 
-            th.inner(:style="{width: '25%'}") Saldo 
+            th.inner Saldo 
+            th.inner Soll
+            th.inner Haben
             tr.inner(v-for="a in accountStore.accounts.filter(acc =>  acc.Name !== 'Kilometer')" )
               td.inner
                 a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
                   span {{ shorten(a.Bezeichnung) }} 
               td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }}  
-            
-              
-
-              
- 
-     
+              td.inner {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }}
+              td.inner {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }}          
+  br            
+  br
 </template>
 
 <script setup lang="ts">
@@ -114,7 +115,9 @@ watch(
   bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
   bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
   bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
-  vueInstance.proxy.$forceUpdate()
+  if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
+  toRender.bookings = []
+  toRender.name = ""
   //logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", allBookingsOfPeriod.length)
 })
 
@@ -137,10 +140,10 @@ logd("bs after bookEverythingtoBS", bs)
 const balanceKonto1 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
  //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
   const from = bs.findAccount("Bussi", "Konto 1")
-  const amount = from.saldoY(perioden.currentPeriod)/shStore.personen.length
+  const amount = -from.saldoY(perioden.currentPeriod)/shStore.personen.length
   for (var tn of shStore.personen) {
-    const to = bs.findAccount(tn, "Ausgleichskonto")
-    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , amount, 0, 
+    const to = bs.findAccount(tn, "Konto 1")
+    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , 0, amount, 
     "Ausgleichsbuchung Konto1 "+perioden.currentPeriod+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name)
     book (b, from, to )
 //    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)

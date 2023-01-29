@@ -1,6 +1,6 @@
 
 <template lang="pug">
-div bookings
+div(style="width: 90%   ") Das Bussi Fahrtenbuch
   Table(:selectedBookingsToRender="hauptbuch.bookings", :konto="konto")
 </template>
   
@@ -13,7 +13,5 @@ const hauptbuch = useHauptbuchStore()
 const konto = "Bussi"
 await hauptbuch.loadBussiData()
 // logd("hauptbuch: hauptbuch loaded: ", hauptbuch, hauptbuch.url)
-
-
 </script>
 

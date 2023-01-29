@@ -15,7 +15,7 @@ const getDataFromGoogle = (url: string): Promise<any> => {
       error: reject,
     })
   })
-  //  console.log("hauptbuch.getDataFromGoogle: ", ret)
+  console.log("hauptbuch.getDataFromGoogle: ", ret)
   return ret
 }
 
@@ -36,19 +36,19 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       const gdata = await getDataFromGoogle(GdataUrl)
 
       // add rowNr to the raw dataset before any filters are applied
-      let data1 = gdata.data.map((e, i) => {
+      let data1 = gdata.data.map((e: any, i: number) => {
         e.rowNr = i
         return e
       })
 
-      if (Number(period)) data1 = data1.filter(e => e["Datum"].substring(0, 4) === period)
+      if (Number(period)) data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) === period)
 
       /* create a ling in the text filed >*/
       const linkTo = (s: string, rnr: number): string =>
         '<a target="_blank" href='
         + this._url + '#range=' + (rnr + 2) + ':' + (rnr + 2) + '>' + s + '</a>'
 
-      this.bookings = data1.map(b => new HauptbuchBooking(
+      this.bookings = data1.map((b: any) => new HauptbuchBooking(
         linkTo(b.rowNr, b.rowNr),
         b["Datum"],
         b["Wer"],

@@ -96,6 +96,18 @@ export class Account {
     ) / 100
       : this.saldo()
   }
+  saldoSoll(year: string): number {
+    const filterFunc = Number(year)
+      ? (b: Booking) => b.date.substring(0, 4) === year.toString()
+      : (b: Booking) => true
+    return Math.round(100 * +this.bookings.filter(b => filterFunc(b)).reduce((acc, cv) => acc += cv.soll, 0)) / 100
+  }
+  saldoHaben(year: string): number {
+    const filterFunc = Number(year)
+      ? (b: Booking) => b.date.substring(0, 4) === year.toString()
+      : (b: Booking) => true
+    return Math.round(100 * +this.bookings.filter(b => filterFunc(b)).reduce((acc, cv) => acc += cv.haben, 0)) / 100
+  }
 }
 export class BussiAccountSystem {
   accounts = [] as Array<Account>

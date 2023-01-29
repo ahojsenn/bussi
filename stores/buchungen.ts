@@ -18,7 +18,7 @@ import { Booking } from '../mixins/types'
 */
 //https://docs.google.com/spreadsheets/d/1xkTQDGJkq9UKvZfFJTEK_W1EdM2AAy7xIFikxTCGhnk/edit#gid=1039570943&range=5490:5490
 
-const parseHauptbuch = (data: Array<HauptbuchBooking>, url: string): Array<HauptbuchBooking> => data.map(value => {
+const parseHauptbuch = (data: Array<any>, url: string): Array<HauptbuchBooking> => data.map(value => {
   return {
     nr: '<a target="_blank" href=' + url + '#range=' + (value.rowNr + 2) + ':' + (value.rowNr + 2) + '>' + value.rowNr + '</a>',
     date: value["Datum"],
