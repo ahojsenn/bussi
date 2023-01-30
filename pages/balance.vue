@@ -23,22 +23,23 @@ div
       tr(v-for="sh in stakeholderNames")
         td {{ sh }}
           a(href="#" @click="selectToRender(bs.findAccount(sh,'Kilometer'))") 
-            div Kilometer: {{ bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod) }} km
+            div Kilometer: {{ Math.abs(bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod)) }} km
           div 
             b Saldo: {{ bs.saldierenEuro(sh) }} €
         td 
           table.inner(:style="{width: '100%'}")
-            th.inner.z100z Kontobezeichnung 
+            th.inner Kontobezeichnung 
             th.inner Saldo 
-            th.inner Soll
-            th.inner Haben
+            th.inner.grey Soll
+            th.inner.grey Haben
             tr.inner(v-for="a in accountStore.accounts.filter(acc =>  acc.Name !== 'Kilometer')" )
               td.inner
                 a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
-                  span {{ shorten(a.Bezeichnung) }} 
+                  span {{ a.Bezeichnung }} 
+                span  &nbsp;&nbsp;&nbsp;&nbsp;
               td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }}  
-              td.inner {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }}
-              td.inner {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }}          
+              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }}
+              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }}          
   br            
   br
 </template>
@@ -157,6 +158,11 @@ const balanceKonto1 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
 
 </script>
 <style scoped>
+.grey {
+  color: grey;
+  border-radius: 6px;
+  border-width: 0px;
+}
 th {
   font-weight: normal;
 }
