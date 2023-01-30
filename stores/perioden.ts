@@ -31,7 +31,7 @@ export const usePeriodenStore = defineStore('perioden', {
     async loadDataFromGoogle() {
       const gdata = await getDataFromGoogle(GdataUrl)
       this._perioden = gdata.data
-      this._currentPeriod = this._perioden[gdata.data.length - 2]["Periode"]
+      this._currentPeriod = this._perioden[0]["Periode"]
       // logd("perioden.loadDataFromGoogle: ", this.perioden)
     },
     setPeriod(p: string) {
