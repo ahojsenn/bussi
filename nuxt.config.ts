@@ -9,8 +9,8 @@ export default defineNuxtConfig({
 
   generate: {
     routes: [
-      '/', 'stakeholder', '/accounts', 'hauptbuch',
-      '/balance'
+      '.', 'stakeholder', 'accounts', 'hauptbuch',
+      'balance'
     ]
   },
 
@@ -27,7 +27,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
   ],
   app: {
-    baseURL: '/bussi/public/'
+    baseURL: '/bussi/'
   },
   appConfig: {
     theme: {
