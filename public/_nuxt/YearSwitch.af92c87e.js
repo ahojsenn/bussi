@@ -1,1 +1,0 @@
-import{_ as o}from"./YearSwitch.vue.dfb7982e.js";import"./entry.8de47bc7.js";import"./app.config.886a5076.js";import"./perioden.eafbd0fc.js";import"./papaparse.min.23b9f094.js";import"./_commonjsHelpers.725317a4.js";import"./url.3a8f7686.js";import"./config.9f8aebdf.js";export{o as default};
