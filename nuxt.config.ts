@@ -6,10 +6,7 @@ export default defineNuxtConfig({
   typescript: {
     strict: true
   },
-  routeRules: {
-    '/': { static: true },
-    '/balance': { static: true },
-  },
+
   generate: {
     routes: [
       '/', 'stakeholder', '/accounts', 'hauptbuch',
@@ -18,11 +15,15 @@ export default defineNuxtConfig({
   },
 
   ssr: false,
+  /*  nitro: {
+    preset: 'service-worker'
+  },*/
   //  static: 'true',
   //target: 'static',
 
 
   modules: [
+    // '@nuxt/content',
     '@pinia/nuxt',
   ],
   app: {

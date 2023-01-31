@@ -17,8 +17,7 @@ nav.menu
     span.burgerMenuText
       NuxtLink(to="/accounts") accounts
     span.burgerMenuText
-      NuxtLink(to="/hauptbuch") hauptbuch
-
+      NuxtLink(to="/hauptbuch") hauptbuch      
 </template>
 
 <script setup lang="ts">
@@ -28,6 +27,10 @@ nav.menu
 
 
 <style scoped>
+
+.invisible {
+  display: none;
+}
 /* exact link will show the primary color for only the exact matching link */
 a.nuxt-link-exact-active {
   color: #3c3c3b !important;
