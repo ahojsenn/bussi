@@ -1,1 +1,0 @@
-self.importScripts('/bussi/public/server/index.mjs');
