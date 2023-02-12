@@ -1,7 +1,7 @@
 import destr from 'destr';
 import { snakeCase } from 'scule';
 
-const _runtimeConfig = {"app":{"baseURL":"/bussi/","buildAssetsDir":"/_nuxt/","cdnURL":""},"nitro":{"envPrefix":"NUXT_","routeRules":{"/__nuxt_error":{"cache":false}}},"public":{}};
+const _runtimeConfig = {"app":{"baseURL":"./bussi/public/","buildAssetsDir":"/_nuxt/","cdnURL":""},"nitro":{"envPrefix":"NUXT_","routeRules":{"/__nuxt_error":{"cache":false}}},"public":{}};
 const ENV_PREFIX = "NITRO_";
 const ENV_PREFIX_ALT = _runtimeConfig.nitro.envPrefix ?? process.env.NITRO_ENV_PREFIX ?? "_";
 const getEnv = (key) => {
