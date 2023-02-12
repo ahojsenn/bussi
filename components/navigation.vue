@@ -9,15 +9,20 @@ nav.menu
       span 
   .responsive-menu
     span.burgerMenuText
-      NuxtLink(to="/") home
+      NuxtLink(to="/") 
+        Nuxt home
     span.burgerMenuText
-      NuxtLink(to="/balance") balance
+      NuxtLink(to="/balance") 
+        Nuxt balance
     span.burgerMenuText
-      NuxtLink(to="/stakeholder") stakeholder
+      NuxtLink(to="/stakeholder") 
+        Nuxt stakeholder
     span.burgerMenuText
-      NuxtLink(to="/accounts") accounts
+      NuxtLink(to="/accounts") 
+       Nuxt accounts
     span.burgerMenuText
-      NuxtLink(to="/hauptbuch") hauptbuch      
+      NuxtLink(to="/hauptbuch") 
+       Nuxt hauptbuch      
 </template>
 
 <script setup lang="ts">
@@ -27,7 +32,6 @@ nav.menu
 
 
 <style scoped>
-
 .invisible {
   display: none;
 }
