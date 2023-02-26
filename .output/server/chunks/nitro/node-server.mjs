@@ -2,22 +2,21 @@ globalThis._importMeta_=globalThis._importMeta_||{url:"file:///_entry.js",env:pr
 import { Server as Server$1 } from 'node:http';
 import { Server } from 'node:https';
 import destr from 'destr';
-import { eventHandler, setHeaders, sendRedirect, defineEventHandler, handleCacheHeaders, createEvent, getRequestHeader, getRequestHeaders, setResponseHeader, createError, lazyEventHandler, createApp, createRouter as createRouter$1, toNodeListener } from 'h3';
+import { defineEventHandler, handleCacheHeaders, createEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, getRequestHeaders, setResponseHeader, createError, createApp, createRouter as createRouter$1, toNodeListener, fetchWithEvent, lazyEventHandler } from 'h3';
 import { createFetch as createFetch$1, Headers } from 'ofetch';
 import { createCall, createFetch } from 'unenv/runtime/fetch/index';
 import { createHooks } from 'hookable';
 import { snakeCase } from 'scule';
 import { hash } from 'ohash';
-import { withoutBase, parseURL, withQuery, joinURL, withLeadingSlash, withoutTrailingSlash } from 'ufo';
+import { parseURL, withoutBase, joinURL, withQuery, withLeadingSlash, withoutTrailingSlash } from 'ufo';
 import { createStorage } from 'unstorage';
 import defu from 'defu';
 import { toRouteMatcher, createRouter } from 'radix3';
 import { promises } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'pathe';
-import { createIPX, createIPXMiddleware } from 'ipx';
 
-const _runtimeConfig = {"app":{"baseURL":"/bussi/","buildAssetsDir":"/_nuxt/","cdnURL":""},"nitro":{"envPrefix":"NUXT_","routeRules":{"/__nuxt_error":{"cache":false}}},"public":{"baseURL":"/bussi/"},"ipx":{"dir":"","domains":[],"sharp":{},"alias":{}}};
+const _runtimeConfig = {"app":{"baseURL":"/bussi/","buildAssetsDir":"/_nuxt/","cdnURL":""},"nitro":{"envPrefix":"NUXT_","routeRules":{"/__nuxt_error":{"cache":false},"/_nuxt/**":{"headers":{"cache-control":"public, max-age=2592000, immutable"}}}},"public":{"baseURL":"/bussi/"}};
 const ENV_PREFIX = "NITRO_";
 const ENV_PREFIX_ALT = _runtimeConfig.nitro.envPrefix ?? process.env.NITRO_ENV_PREFIX ?? "_";
 const getEnv = (key) => {
@@ -65,7 +64,7 @@ function normalizeKey(key) {
   if (!key) {
     return "";
   }
-  return key.replace(/[/\\]/g, ":").replace(/:+/g, ":").replace(/^:|:$/g, "");
+  return key.split("?")[0].replace(/[/\\]/g, ":").replace(/:+/g, ":").replace(/^:|:$/g, "");
 }
 
 const assets$1 = {
@@ -91,39 +90,6 @@ const storage = createStorage({});
 const useStorage = () => storage;
 
 storage.mount('/assets', assets$1);
-
-const config = useRuntimeConfig();
-const _routeRulesMatcher = toRouteMatcher(
-  createRouter({ routes: config.nitro.routeRules })
-);
-function createRouteRulesHandler() {
-  return eventHandler((event) => {
-    const routeRules = getRouteRules(event);
-    if (routeRules.headers) {
-      setHeaders(event, routeRules.headers);
-    }
-    if (routeRules.redirect) {
-      return sendRedirect(
-        event,
-        routeRules.redirect.to,
-        routeRules.redirect.statusCode
-      );
-    }
-  });
-}
-function getRouteRules(event) {
-  event.context._nitro = event.context._nitro || {};
-  if (!event.context._nitro.routeRules) {
-    const path = new URL(event.node.req.url, "http://localhost").pathname;
-    event.context._nitro.routeRules = getRouteRulesForPath(
-      withoutBase(path, useRuntimeConfig().app.baseURL)
-    );
-  }
-  return event.context._nitro.routeRules;
-}
-function getRouteRulesForPath(path) {
-  return defu({}, ..._routeRulesMatcher.matchAll(path).reverse());
-}
 
 const defaultCacheOptions = {
   name: "_",
@@ -289,7 +255,7 @@ function defineCachedEventHandler(handler, opts = defaultCacheOptions) {
       const body = await handler(event) || _resSendBody;
       const headers = event.node.res.getHeaders();
       headers.etag = headers.Etag || headers.etag || `W/"${hash(body)}"`;
-      headers["last-modified"] = headers["Last-Modified"] || headers["last-modified"] || new Date().toUTCString();
+      headers["last-modified"] = headers["Last-Modified"] || headers["last-modified"] || (/* @__PURE__ */ new Date()).toUTCString();
       const cacheControl = [];
       if (opts.swr) {
         if (opts.maxAge) {
@@ -359,6 +325,54 @@ function cloneWithProxy(obj, overrides) {
 }
 const cachedEventHandler = defineCachedEventHandler;
 
+const config = useRuntimeConfig();
+const _routeRulesMatcher = toRouteMatcher(
+  createRouter({ routes: config.nitro.routeRules })
+);
+function createRouteRulesHandler() {
+  return eventHandler((event) => {
+    const routeRules = getRouteRules(event);
+    if (routeRules.headers) {
+      setHeaders(event, routeRules.headers);
+    }
+    if (routeRules.redirect) {
+      return sendRedirect(
+        event,
+        routeRules.redirect.to,
+        routeRules.redirect.statusCode
+      );
+    }
+    if (routeRules.proxy) {
+      let target = routeRules.proxy.to;
+      if (target.endsWith("/**")) {
+        let targetPath = event.path;
+        const strpBase = routeRules.proxy._proxyStripBase;
+        if (strpBase) {
+          targetPath = withoutBase(targetPath, strpBase);
+        }
+        target = joinURL(target.slice(0, -3), targetPath);
+      }
+      return proxyRequest(event, target, {
+        fetch: $fetch.raw,
+        ...routeRules.proxy
+      });
+    }
+  });
+}
+function getRouteRules(event) {
+  event.context._nitro = event.context._nitro || {};
+  if (!event.context._nitro.routeRules) {
+    const path = new URL(event.node.req.url, "http://localhost").pathname;
+    event.context._nitro.routeRules = getRouteRulesForPath(
+      withoutBase(path, useRuntimeConfig().app.baseURL)
+    );
+  }
+  return event.context._nitro.routeRules;
+}
+function getRouteRulesForPath(path) {
+  return defu({}, ..._routeRulesMatcher.matchAll(path).reverse());
+}
+
 const plugins = [
   
 ];
@@ -371,7 +385,7 @@ function isJsonRequest(event) {
   return hasReqHeader(event, "accept", "application/json") || hasReqHeader(event, "user-agent", "curl/") || hasReqHeader(event, "user-agent", "httpie/") || event.node.req.url?.endsWith(".json") || event.node.req.url?.includes("/api/");
 }
 function normalizeError(error) {
-  const cwd = process.cwd();
+  const cwd = typeof process.cwd === "function" ? process.cwd() : "/";
   const stack = (error.stack || "").split("\n").splice(1).filter((line) => line.includes("at ")).map((line) => {
     const text = line.replace(cwd + "/", "./").replace("webpack:/", "").replace("file://", "").trim();
     return {
@@ -446,247 +460,240 @@ const assets = {
   "/.nojekyll": {
     "type": "text/plain; charset=utf-8",
     "etag": "\"1-uFjLKCYX+wlW2WAhXI6E0cz5CcY\"",
-    "mtime": "2023-02-12T21:16:28.331Z",
+    "mtime": "2023-02-26T09:48:47.592Z",
     "size": 1,
     "path": "../public/.nojekyll"
   },
   "/SupermarkerVARTrial-Italic.woff2": {
     "type": "font/woff2",
     "etag": "\"2b068-PP2CsMU++NvaOYqxYAQgnQp9Y2M\"",
-    "mtime": "2023-02-12T21:16:28.331Z",
+    "mtime": "2023-02-26T09:48:47.592Z",
     "size": 176232,
     "path": "../public/SupermarkerVARTrial-Italic.woff2"
   },
   "/SupermarkerVARTrial.woff2": {
     "type": "font/woff2",
     "etag": "\"240b0-g7MSLZBE7fNuUhekvTA6USvrWx8\"",
-    "mtime": "2023-02-12T21:16:28.330Z",
+    "mtime": "2023-02-26T09:48:47.591Z",
     "size": 147632,
     "path": "../public/SupermarkerVARTrial.woff2"
   },
   "/bussi-old.png": {
     "type": "image/png",
     "etag": "\"83084-MddZ1pvMzwqtGYtRnamj9/fQJFw\"",
-    "mtime": "2023-02-12T21:16:28.330Z",
+    "mtime": "2023-02-26T09:48:47.590Z",
     "size": 536708,
     "path": "../public/bussi-old.png"
   },
-  "/bussi.png": {
-    "type": "image/png",
-    "etag": "\"895e8-0L1+lZfI2A3NTbM7dKPfGZ2pL9w\"",
-    "mtime": "2023-02-12T21:16:28.329Z",
-    "size": 562664,
-    "path": "../public/bussi.png"
-  },
   "/index.html": {
     "type": "text/html; charset=utf-8",
-    "etag": "\"31d-2joNSSf3SwVCuapX9WfGvLjV3zU\"",
-    "mtime": "2023-02-12T21:16:28.751Z",
+    "etag": "\"31d-/x2UNYcp371xfRFKN5egWf+EWbc\"",
+    "mtime": "2023-02-26T09:48:48.114Z",
     "size": 797,
     "path": "../public/index.html"
   },
   "/prilblumen.png": {
     "type": "image/png",
     "etag": "\"d3c56-6Omhh5Wl1FMtKaRnIatIUocFcbI\"",
-    "mtime": "2023-02-12T21:16:28.327Z",
+    "mtime": "2023-02-26T09:48:47.588Z",
     "size": 867414,
     "path": "../public/prilblumen.png"
   },
-  "/balance/index.html": {
-    "type": "text/html; charset=utf-8",
-    "etag": "\"31d-2joNSSf3SwVCuapX9WfGvLjV3zU\"",
-    "mtime": "2023-02-12T21:16:28.760Z",
-    "size": 797,
-    "path": "../public/balance/index.html"
-  },
-  "/accounts/index.html": {
-    "type": "text/html; charset=utf-8",
-    "etag": "\"31d-2joNSSf3SwVCuapX9WfGvLjV3zU\"",
-    "mtime": "2023-02-12T21:16:28.756Z",
-    "size": 797,
-    "path": "../public/accounts/index.html"
-  },
-  "/_nuxt/_...slug_.373e8926.js": {
+  "/_nuxt/_...slug_.640c6d37.js": {
     "type": "application/javascript",
-    "etag": "\"ca-Bj6JMtGd2cbmMHxbSyqYdBFK2zM\"",
-    "mtime": "2023-02-12T21:16:28.325Z",
+    "etag": "\"ca-QT8Bx7/YC4tIYrwDHTzynJ9Htak\"",
+    "mtime": "2023-02-26T09:48:47.586Z",
     "size": 202,
-    "path": "../public/_nuxt/_...slug_.373e8926.js"
+    "path": "../public/_nuxt/_...slug_.640c6d37.js"
   },
-  "/_nuxt/accounts.51b5fcc9.js": {
+  "/_nuxt/accounts.f0733eb7.js": {
     "type": "application/javascript",
-    "etag": "\"250-YdSAncMwkR3F+c7HkdMsbLT6eR4\"",
-    "mtime": "2023-02-12T21:16:28.325Z",
+    "etag": "\"250-hDoy8ILzQ5f8vv4uxdjEmhQahsk\"",
+    "mtime": "2023-02-26T09:48:47.585Z",
     "size": 592,
-    "path": "../public/_nuxt/accounts.51b5fcc9.js"
+    "path": "../public/_nuxt/accounts.f0733eb7.js"
   },
-  "/_nuxt/accounts.d3d22e3e.js": {
+  "/_nuxt/accounts.f676afb2.js": {
     "type": "application/javascript",
-    "etag": "\"31d-xND7YNkGCc1s0zQyOr6EXc/Baio\"",
-    "mtime": "2023-02-12T21:16:28.325Z",
+    "etag": "\"31d-opOOevkyzd6T7mme8eJ+3GdOPcQ\"",
+    "mtime": "2023-02-26T09:48:47.585Z",
     "size": 797,
-    "path": "../public/_nuxt/accounts.d3d22e3e.js"
+    "path": "../public/_nuxt/accounts.f676afb2.js"
   },
-  "/_nuxt/balance.2757d580.js": {
+  "/_nuxt/balance.0c7b4193.js": {
     "type": "application/javascript",
-    "etag": "\"232d-hW0qv9xTHKt9ik5ZcMEpCpyvfsQ\"",
-    "mtime": "2023-02-12T21:16:28.324Z",
-    "size": 9005,
-    "path": "../public/_nuxt/balance.2757d580.js"
+    "etag": "\"286f-O4krd4rbFmCLYxIip/Tuq6E5BKM\"",
+    "mtime": "2023-02-26T09:48:47.584Z",
+    "size": 10351,
+    "path": "../public/_nuxt/balance.0c7b4193.js"
   },
-  "/_nuxt/balance.41037350.css": {
+  "/_nuxt/balance.15ccc556.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"196-iJQYe0c2dERXx141RhTJDTkNcnA\"",
-    "mtime": "2023-02-12T21:16:28.324Z",
+    "etag": "\"196-PI5xXzochHpCXBhp8H/ThCYCrEw\"",
+    "mtime": "2023-02-26T09:48:47.584Z",
     "size": 406,
-    "path": "../public/_nuxt/balance.41037350.css"
+    "path": "../public/_nuxt/balance.15ccc556.css"
   },
-  "/_nuxt/composables.470a9085.js": {
+  "/_nuxt/composables.bc0220ec.js": {
     "type": "application/javascript",
-    "etag": "\"61-8dx7d1OHm/K7cVh08I8U+0ofEu4\"",
-    "mtime": "2023-02-12T21:16:28.324Z",
+    "etag": "\"61-iyUWJHkiOoDh2FC76x/ZeEixwwU\"",
+    "mtime": "2023-02-26T09:48:47.584Z",
     "size": 97,
-    "path": "../public/_nuxt/composables.470a9085.js"
+    "path": "../public/_nuxt/composables.bc0220ec.js"
   },
-  "/_nuxt/config.147cd9c5.js": {
+  "/_nuxt/default.87152b90.js": {
     "type": "application/javascript",
-    "etag": "\"95-DwxnbSm+PTXFHREkwMSIAy1+Xok\"",
-    "mtime": "2023-02-12T21:16:28.323Z",
-    "size": 149,
-    "path": "../public/_nuxt/config.147cd9c5.js"
-  },
-  "/_nuxt/default.296a495a.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"982-r17XtsfhgvuvlfW1EvauPp4FqJ0\"",
-    "mtime": "2023-02-12T21:16:28.323Z",
-    "size": 2434,
-    "path": "../public/_nuxt/default.296a495a.css"
-  },
-  "/_nuxt/default.a9e1f0cc.js": {
-    "type": "application/javascript",
-    "etag": "\"594-ZUaSB6OrJMaGnh3ZBau3HncrMFQ\"",
-    "mtime": "2023-02-12T21:16:28.301Z",
+    "etag": "\"594-K4gQvyDc9ecLTZTEvRN2eyvjU5A\"",
+    "mtime": "2023-02-26T09:48:47.583Z",
     "size": 1428,
-    "path": "../public/_nuxt/default.a9e1f0cc.js"
+    "path": "../public/_nuxt/default.87152b90.js"
   },
-  "/_nuxt/entry.c469fa09.js": {
+  "/_nuxt/default.c462e1a2.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"998-FS1XTcg0YyLm2u3XfwyzaQ5aSyM\"",
+    "mtime": "2023-02-26T09:48:47.582Z",
+    "size": 2456,
+    "path": "../public/_nuxt/default.c462e1a2.css"
+  },
+  "/_nuxt/entry.fd38c6db.js": {
     "type": "application/javascript",
-    "etag": "\"24736-1yTbD67S+G4ncjNpVcr3Ips5Ce0\"",
-    "mtime": "2023-02-12T21:16:28.301Z",
-    "size": 149302,
-    "path": "../public/_nuxt/entry.c469fa09.js"
+    "etag": "\"237d4-wK0iVHJ4m9rNCSs5HT++fpdZWf8\"",
+    "mtime": "2023-02-26T09:48:47.581Z",
+    "size": 145364,
+    "path": "../public/_nuxt/entry.fd38c6db.js"
   },
   "/_nuxt/error-404.23f2309d.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"e2e-ivsbEmi48+s9HDOqtrSdWFvddYQ\"",
-    "mtime": "2023-02-12T21:16:28.300Z",
+    "mtime": "2023-02-26T09:48:47.581Z",
     "size": 3630,
     "path": "../public/_nuxt/error-404.23f2309d.css"
   },
-  "/_nuxt/error-404.b3b6c3f2.js": {
+  "/_nuxt/error-404.a6cb0cf1.js": {
     "type": "application/javascript",
-    "etag": "\"8cf-HVmd2c3lz+ljgzyBqHtkdmHATQ0\"",
-    "mtime": "2023-02-12T21:16:28.300Z",
+    "etag": "\"8cf-Ma1M5eblSZaelBM0YVl34F1kOms\"",
+    "mtime": "2023-02-26T09:48:47.580Z",
     "size": 2255,
-    "path": "../public/_nuxt/error-404.b3b6c3f2.js"
-  },
-  "/_nuxt/error-500.2c553e40.js": {
-    "type": "application/javascript",
-    "etag": "\"778-2rDH/WDbiugowJni2Xu++pagJHA\"",
-    "mtime": "2023-02-12T21:16:28.300Z",
-    "size": 1912,
-    "path": "../public/_nuxt/error-500.2c553e40.js"
+    "path": "../public/_nuxt/error-404.a6cb0cf1.js"
   },
   "/_nuxt/error-500.aa16ed4d.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"79e-7j4Tsx89siDo85YoIs0XqsPWmPI\"",
-    "mtime": "2023-02-12T21:16:28.299Z",
+    "mtime": "2023-02-26T09:48:47.580Z",
     "size": 1950,
     "path": "../public/_nuxt/error-500.aa16ed4d.css"
   },
-  "/_nuxt/error-component.633498c9.js": {
+  "/_nuxt/error-500.ef0cb67f.js": {
     "type": "application/javascript",
-    "etag": "\"470-mFusWrGIOOJGurDR7ne5WWjidmQ\"",
-    "mtime": "2023-02-12T21:16:28.298Z",
+    "etag": "\"77d-tFxilOSVdhDN75SE2DtNaNLAmKM\"",
+    "mtime": "2023-02-26T09:48:47.580Z",
+    "size": 1917,
+    "path": "../public/_nuxt/error-500.ef0cb67f.js"
+  },
+  "/_nuxt/error-component.73366e52.js": {
+    "type": "application/javascript",
+    "etag": "\"470-smaed+i51K9mMJqiW1qArUAXT4Q\"",
+    "mtime": "2023-02-26T09:48:47.579Z",
     "size": 1136,
-    "path": "../public/_nuxt/error-component.633498c9.js"
+    "path": "../public/_nuxt/error-component.73366e52.js"
   },
-  "/_nuxt/hauptbuch.51a821cd.js": {
+  "/_nuxt/hauptbuch.06ba60fa.js": {
     "type": "application/javascript",
-    "etag": "\"422-4qh5rILVYB/7xi3VzerLMiPTvzw\"",
-    "mtime": "2023-02-12T21:16:28.297Z",
-    "size": 1058,
-    "path": "../public/_nuxt/hauptbuch.51a821cd.js"
+    "etag": "\"238-B6h6q9sJOknmQzHqeETP/Z9zRjE\"",
+    "mtime": "2023-02-26T09:48:47.578Z",
+    "size": 568,
+    "path": "../public/_nuxt/hauptbuch.06ba60fa.js"
   },
-  "/_nuxt/hauptbuch.8feb6758.js": {
+  "/_nuxt/hauptbuch.bc529629.js": {
     "type": "application/javascript",
-    "etag": "\"234-n/9zJqByDIMdofjSd8ycYkTUiGY\"",
-    "mtime": "2023-02-12T21:16:28.297Z",
-    "size": 564,
-    "path": "../public/_nuxt/hauptbuch.8feb6758.js"
+    "etag": "\"43f-SAQLLszrjbOfzc81r4UtdNcJA2k\"",
+    "mtime": "2023-02-26T09:48:47.577Z",
+    "size": 1087,
+    "path": "../public/_nuxt/hauptbuch.bc529629.js"
   },
-  "/_nuxt/index.61eed61e.js": {
-    "type": "application/javascript",
-    "etag": "\"c0f-IveVrD/wIr/UlIgz55KJfWn1uUs\"",
-    "mtime": "2023-02-12T21:16:28.297Z",
-    "size": 3087,
-    "path": "../public/_nuxt/index.61eed61e.js"
-  },
-  "/_nuxt/papaparse.74f7062d.css": {
+  "/_nuxt/index.66c10340.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"62f-1GkrsdyVv8pwWMDExrXRJSmip/0\"",
-    "mtime": "2023-02-12T21:16:28.296Z",
-    "size": 1583,
-    "path": "../public/_nuxt/papaparse.74f7062d.css"
+    "etag": "\"52-w9J3Rh2lIhGAGVhhVbJsGYCY8bM\"",
+    "mtime": "2023-02-26T09:48:47.576Z",
+    "size": 82,
+    "path": "../public/_nuxt/index.66c10340.css"
   },
-  "/_nuxt/papaparse.min.07309ec6.js": {
+  "/_nuxt/index.ee6809a4.js": {
     "type": "application/javascript",
-    "etag": "\"66b5-7WQ6SExyZ4c2zD/G3WBRsbOZ4/M\"",
-    "mtime": "2023-02-12T21:16:28.296Z",
-    "size": 26293,
-    "path": "../public/_nuxt/papaparse.min.07309ec6.js"
+    "etag": "\"1c0-hMwH2kNSIxfDdiDBPi6AMF30oNU\"",
+    "mtime": "2023-02-26T09:48:47.576Z",
+    "size": 448,
+    "path": "../public/_nuxt/index.ee6809a4.js"
   },
-  "/_nuxt/stakeholder.61473435.js": {
+  "/_nuxt/papaparse.a3bf547c.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"6f1-mIQROWxgLRY9igcAuUBma2x/1fA\"",
+    "mtime": "2023-02-26T09:48:47.575Z",
+    "size": 1777,
+    "path": "../public/_nuxt/papaparse.a3bf547c.css"
+  },
+  "/_nuxt/papaparse.min.c13abb20.js": {
     "type": "application/javascript",
-    "etag": "\"1fb-SCp9oRyBH2SBrQnEUk0/Z1MMfg4\"",
-    "mtime": "2023-02-12T21:16:28.295Z",
+    "etag": "\"65b8-pjl6vBetwAvx/J3b/ZQtQ0guKvg\"",
+    "mtime": "2023-02-26T09:48:47.575Z",
+    "size": 26040,
+    "path": "../public/_nuxt/papaparse.min.c13abb20.js"
+  },
+  "/_nuxt/stakeholder.94519e4c.js": {
+    "type": "application/javascript",
+    "etag": "\"1fb-gzD0XvsLPbDwBA/0UTbVzCfNGPQ\"",
+    "mtime": "2023-02-26T09:48:47.575Z",
     "size": 507,
-    "path": "../public/_nuxt/stakeholder.61473435.js"
+    "path": "../public/_nuxt/stakeholder.94519e4c.js"
   },
-  "/_nuxt/stakeholder.b2b9a233.js": {
+  "/_nuxt/stakeholder.9fe8b8a8.js": {
     "type": "application/javascript",
-    "etag": "\"2e6-gBTmp8UBLvJ9Xty2wJWZfvNjH1U\"",
-    "mtime": "2023-02-12T21:16:28.295Z",
+    "etag": "\"2e6-FDSVKjo1EhNN3c9dysDp7b4Q8Zs\"",
+    "mtime": "2023-02-26T09:48:47.574Z",
     "size": 742,
-    "path": "../public/_nuxt/stakeholder.b2b9a233.js"
+    "path": "../public/_nuxt/stakeholder.9fe8b8a8.js"
   },
-  "/_nuxt/types.9c14c63d.js": {
+  "/_nuxt/types.3d83ab55.js": {
     "type": "application/javascript",
-    "etag": "\"8b1-m0kSl4Gg/cekQQE4Ef/cVUJmC0Y\"",
-    "mtime": "2023-02-12T21:16:28.294Z",
-    "size": 2225,
-    "path": "../public/_nuxt/types.9c14c63d.js"
+    "etag": "\"878-DAbBIRnSQYOVu4dY+wdMe5GfFw8\"",
+    "mtime": "2023-02-26T09:48:47.574Z",
+    "size": 2168,
+    "path": "../public/_nuxt/types.3d83ab55.js"
   },
   "/hauptbuch/index.html": {
     "type": "text/html; charset=utf-8",
-    "etag": "\"31d-2joNSSf3SwVCuapX9WfGvLjV3zU\"",
-    "mtime": "2023-02-12T21:16:28.758Z",
+    "etag": "\"31d-/x2UNYcp371xfRFKN5egWf+EWbc\"",
+    "mtime": "2023-02-26T09:48:48.125Z",
     "size": 797,
     "path": "../public/hauptbuch/index.html"
   },
+  "/balance/index.html": {
+    "type": "text/html; charset=utf-8",
+    "etag": "\"31d-/x2UNYcp371xfRFKN5egWf+EWbc\"",
+    "mtime": "2023-02-26T09:48:48.129Z",
+    "size": 797,
+    "path": "../public/balance/index.html"
+  },
   "/stakeholder/index.html": {
     "type": "text/html; charset=utf-8",
-    "etag": "\"31d-2joNSSf3SwVCuapX9WfGvLjV3zU\"",
-    "mtime": "2023-02-12T21:16:28.754Z",
+    "etag": "\"31d-/x2UNYcp371xfRFKN5egWf+EWbc\"",
+    "mtime": "2023-02-26T09:48:48.117Z",
     "size": 797,
     "path": "../public/stakeholder/index.html"
   },
   "/img/bussi.png": {
     "type": "image/png",
-    "etag": "\"895e8-0L1+lZfI2A3NTbM7dKPfGZ2pL9w\"",
-    "mtime": "2023-02-12T21:16:28.328Z",
-    "size": 562664,
+    "etag": "\"d2a34-b+4u7OS/T270O8HNiRuxRxx/GH8\"",
+    "mtime": "2023-02-26T09:48:47.589Z",
+    "size": 862772,
     "path": "../public/img/bussi.png"
+  },
+  "/accounts/index.html": {
+    "type": "text/html; charset=utf-8",
+    "etag": "\"31d-/x2UNYcp371xfRFKN5egWf+EWbc\"",
+    "mtime": "2023-02-26T09:48:48.121Z",
+    "size": 797,
+    "path": "../public/accounts/index.html"
   }
 };
 
@@ -695,13 +702,13 @@ function readAsset (id) {
   return promises.readFile(resolve(serverDir, assets[id].path))
 }
 
-const publicAssetBases = [];
+const publicAssetBases = {"/_nuxt":{"maxAge":2592000}};
 
 function isPublicAssetURL(id = '') {
   if (assets[id]) {
     return true
   }
-  for (const base of publicAssetBases) {
+  for (const base in publicAssetBases) {
     if (id.startsWith(base)) { return true }
   }
   return false
@@ -745,6 +752,7 @@ const _f4b49z = eventHandler((event) => {
   }
   if (!asset) {
     if (isPublicAssetURL(id)) {
+      event.node.res.removeHeader("cache-control");
       throw createError({
         statusMessage: "Cannot find static asset " + id,
         statusCode: 404
@@ -782,25 +790,11 @@ const _f4b49z = eventHandler((event) => {
   return readAsset(id);
 });
 
-const _zt5IVN = lazyEventHandler(() => {
-  const ipxOptions = {
-    ...useRuntimeConfig().ipx || {},
-    dir: fileURLToPath(new URL("../public", globalThis._importMeta_.url))
-  };
-  const ipx = createIPX(ipxOptions);
-  const middleware = createIPXMiddleware(ipx);
-  return eventHandler(async (event) => {
-    event.req.url = withLeadingSlash(event.context.params._);
-    await middleware(event.req, event.res);
-  });
-});
-
 const _lazy_kVhJdL = () => import('../handlers/renderer.mjs');
 
 const handlers = [
   { route: '', handler: _f4b49z, lazy: false, middleware: true, method: undefined },
   { route: '/__nuxt_error', handler: _lazy_kVhJdL, lazy: true, middleware: false, method: undefined },
-  { route: '/_ipx/**', handler: _zt5IVN, lazy: false, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_kVhJdL, lazy: true, middleware: false, method: undefined }
 ];
 
@@ -813,6 +807,24 @@ function createNitroApp() {
   });
   const router = createRouter$1();
   h3App.use(createRouteRulesHandler());
+  const localCall = createCall(toNodeListener(h3App));
+  const localFetch = createFetch(localCall, globalThis.fetch);
+  const $fetch = createFetch$1({
+    fetch: localFetch,
+    Headers,
+    defaults: { baseURL: config.app.baseURL }
+  });
+  globalThis.$fetch = $fetch;
+  h3App.use(
+    eventHandler((event) => {
+      const envContext = event.node.req.__unenv__;
+      if (envContext) {
+        Object.assign(event.context, envContext);
+      }
+      event.fetch = (req, init) => fetchWithEvent(event, req, init, { fetch: localFetch });
+      event.$fetch = (req, init) => fetchWithEvent(event, req, init, { fetch: $fetch });
+    })
+  );
   for (const h of handlers) {
     let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;
     if (h.middleware || !h.route) {
@@ -835,14 +847,6 @@ function createNitroApp() {
     }
   }
   h3App.use(config.app.baseURL, router);
-  const localCall = createCall(toNodeListener(h3App));
-  const localFetch = createFetch(localCall, globalThis.fetch);
-  const $fetch = createFetch$1({
-    fetch: localFetch,
-    Headers,
-    defaults: { baseURL: config.app.baseURL }
-  });
-  globalThis.$fetch = $fetch;
   const app = {
     hooks,
     h3App,

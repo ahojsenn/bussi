@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  h2 test omponent by Hannes {{ counter.count }}
+  h2 test component by Hannes {{ counter.count }}
   button(v-on:click="counter.decrement") minus1
   button(v-on:click="counter.increment") plus1
 </template>

@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 import logd from '../mixins/logDebug'
 import { URL } from '../mixins/url'
-import { usePeriodenStore } from './perioden';
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {
@@ -60,7 +59,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         b["V-Schlüssel"],
         b["km"],
         b["km seit letzter Tankung"],
-        b["Verbrauch/l"],
+        parseFloat(b["Verbrauch/l"].replace(',', '.')) || 0,
       ))
       // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },

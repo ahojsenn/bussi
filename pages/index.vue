@@ -2,11 +2,17 @@
 div 
   h1 
     a(href="https://miro.com/app/board/uXjVPyPTepA=/") Bussi
-  nuxt-img(src="../../bussi/img/bussi.png" sizes="xs:320px sm:400px md:750px lg:1000px"  )
+  img(src="/img/bussi.png" alt="Bussi")
 </template>
 
 <script setup lang="ts">
 
-const appConfig = useAppConfig()
-console.log(appConfig.theme)
 </script>
+<style scoped> 
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 90vw;
+} 
+</style>

@@ -10,32 +10,16 @@ export default defineNuxtConfig({
   },
 
   ssr: false,
-  /*nitro: {
-    preset: 'service-worker'
-  },
-  */
-  // static: 'true',
-  // target: 'static',
 
-  image: {
-    // staticFilename: '[publicPath]/images/[name]-[hash][ext]',
-    //dir: ''
-
-  },
   modules: [
     // '@nuxt/content',
     '@pinia/nuxt',
-    '@nuxt/image-edge',
+    // '@nuxt/image-edge',
   ],
   app: {
     baseURL: '/bussi/'
   },
-  appConfig: {
-    theme: {
-      primaryColor: '#ff0000'
-    },
-    GKEY: '1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M'
-  },
+
   runtimeConfig: {
     public: {
       baseURL: '/bussi/',

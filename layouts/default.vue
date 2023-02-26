@@ -1,8 +1,8 @@
 <template lang="pug">
 div.background
-  div.foreground
-    navigation
-    slot 
+    div.foreground
+      navigation
+      slot 
 </template>
 
 <style>
@@ -11,6 +11,9 @@ div.background
  src:  url('/SupermarkerVARTrial.woff2') format('woff2'), /* SupermarkerVARTrial.woff2 oder SupermarkerVARTrial.ttf */
        url('/SupermarkerVARTrial.woff') format('woff'), /* SupermarkerVARTrial.woff oder SupermarkerVARTrial.ttf */
        url('/SupermarkerVARTrial.ttf') format('truetype'); /* SupermarkerVARTrial.ttf */
+
+  /* background black */
+  background-color: #000;
 }
 select, option,input, form {
   font: 14px "supermarker";

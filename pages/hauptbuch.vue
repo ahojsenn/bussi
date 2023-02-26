@@ -1,17 +1,20 @@
-
 <template lang="pug">
-div(style="width: 90%   ") Das Bussi Fahrtenbuch
+div Das Bussi Fahrtenbuch
   Table(:selectedBookingsToRender="hauptbuch.bookings", :konto="konto")
 </template>
   
 <script setup lang="ts">
+import Table from '../components/Table.vue'
 import { useHauptbuchStore } from '../stores/hauptbuch'
-import { useBuchungenStore } from '../stores/buchungen'
-import logd from '../mixins/logDebug';
+import {  onMounted,  getCurrentInstance} from 'vue'
+const hauptbuch = reactive(useHauptbuchStore())
+const konto = "Hauptbuch"
+const vueInstance = getCurrentInstance()
 
-const hauptbuch = useHauptbuchStore()
-const konto = "Bussi"
-await hauptbuch.loadBussiData()
-// logd("hauptbuch: hauptbuch loaded: ", hauptbuch, hauptbuch.url)
+const loadHauptbuch = async () => {
+  await hauptbuch.loadBussiData()
+  if (vueInstance && vueInstance.proxy) await vueInstance.proxy.$forceUpdate()
+}
+onMounted(async () => await loadHauptbuch())
 </script>
 

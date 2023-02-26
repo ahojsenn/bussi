@@ -5,7 +5,7 @@ export class HauptbuchBooking {
   date: string
   account: string
   km: string
-  kmSinceLastEntry?: string
+  kmSinceLastEntry: string
   kmSinceLastFuelFill?: string
   liters: string
   consumption?: number
@@ -114,15 +114,16 @@ export class BussiAccountSystem {
   hauptbuchBookings = [] as Array<HauptbuchBooking>
   Errors = {} as Account
   Errors1 = {} as Account
-  Reparaturkasse = {} as Account
+  Konto9000 = {} as Account
   constructor(stakeholder = [] as Array<string>, accounts = [] as Array<string>, hauptbuchBookings = [] as Array<HauptbuchBooking>) {
     this.hauptbuchBookings = hauptbuchBookings
     this.Errors = new Account("Errors", "system")
     this.Errors1 = new Account("Errors1", "system")
-    this.Reparaturkasse = new Account("Reparaturkasse", "Bussi")
+    // this.Konto9000 = new Account("zum Ausbuchen Tankunterfüllstand am Jahresende", "Bussi")
     for (const owner of stakeholder)
-      for (const name of accounts)
+      for (const name of accounts) {
         this.accounts.push(new Account(name, owner))
+      }
   }
   findAccount(owner: string, name: string): Account {
     // logd("findAccountbyON", name, owner, this.accounts.find(a => (a.name === name) && (a.owner === owner)))

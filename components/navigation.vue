@@ -22,7 +22,7 @@ nav.menu
        Nuxt accounts
     span.burgerMenuText
       NuxtLink(to="/hauptbuch") 
-       Nuxt hauptbuch      
+        Nuxt hauptbuch      
 </template>
 
 <script setup lang="ts">
