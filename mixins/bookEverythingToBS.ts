@@ -91,7 +91,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           + splitAccount + "-->" + "Bussi"
           + " " + booking.description
           + "<br>Benzingeld: " + benzingeld + " €, Reparaturgeld: " + reppausch + " € für " + km + " km"
-        const bk = new Booking(booking.nr, booking.date, km, 0, text)
+        const bk = new Booking(booking.nr, booking.date, km, 0, text, kmStart)
         book(bk, from, to)
         bookingWasUsed = true
 
@@ -101,7 +101,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         const to1 = bs.findAccount("Bussi", "Konto 2")
         const text1 = "Benzingeld: " + splitAccount + "-->Bussi, " + benzingeld + " € für " + km + " km"
           + ", Benzinpreis: " + benzinpreis + "€/L, Verbrauch: " + verbrauch + " =" + Math.round(benzinpreis * verbrauch) / 100 + "€/km"
-        const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1)
+        const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1, kmStart)
         book(bk1, from1, to1)
 
 
@@ -110,7 +110,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         const to2 = bs.findAccount(splitAccount, "Konto 3")
         const bk2 = new Booking(booking.nr, booking.date, 0, reppausch,
           "Reparaturpauschale " + perioden.reparaturpauschale(perioden.currentPeriod) + " €/km * " + km + " km "
-          + "= " + reppausch + " € : " + splitAccount + " --> Bussi"
+          + "= " + reppausch + " € : " + splitAccount + " --> Bussi", kmStart
         )
         book(bk2, from2, to2)
       }
@@ -129,7 +129,9 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           + "<br>" + splitAccount + "-->" + "Bussi"
           + "<br>Benzinpreis: " + benzinpreis + " €/l"
         const betrag = euroToNumber(booking.amount) / splits.length
-        const bk = new Booking(booking.nr, booking.date, betrag, 0, text)
+        const kmEnde = +booking.km
+        const kmStart = kmEnde - parseFloat(booking.kmSinceLastEntry || "0")
+        const bk = new Booking(booking.nr, booking.date, betrag, 0, text, kmStart)
         book(bk, from, to)
         bookingWasUsed = true
         //logd("Tanken: ", splits, bk, from, to, booking)
