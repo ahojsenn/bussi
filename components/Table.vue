@@ -194,7 +194,7 @@ const aggregateBy = function (array: [any], aggregateKey: string) {
 const columns = function (antifilter = "Net FileCreated Steuer Year Month") {
   if (md.rows === undefined) return []
   else
-    return md.rows.length === 0
+    return (md.rows.length === 0)
       ? []
       : Object.keys(md.rows[0]).filter(
           (d) => !(antifilter.includes(d))
@@ -260,7 +260,7 @@ const getFilterFromQuery = function () {
   md.rows = executeFilter(md.rows, md.filters)
 }
 
-const setFilter = function setFilter(title, value, isAntiFilter) {
+const setFilter = function setFilter(title: string, value: string, isAntiFilter: boolean) {
   logd("Table.setfilter: ", title, value)
   const filter = { title, value, isAnti: isAntiFilter }
   // only allow one filter of the same type

@@ -219,7 +219,7 @@ const balanceKonto3 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
 const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
-  logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
+  // logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
   const bussiSaldo =  bs.saldierenEuro("Bussi")
   const zeroIfNegative = (x: number) => x < 0 ? 0 : x
   // create an array of all stakeholders with their rest to pay (saldo - 1/n * bussiSaldo)
@@ -227,7 +227,7 @@ const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
     const saldo = bs.saldierenEuro(e)+bussiSaldo/shStore.personen.length
     return {name: e, saldo: saldo}
   })
-  logd("balanceSalden. stakeholdersSaldo ", stakeholdersSaldo)
+  // logd("balanceSalden. stakeholdersSaldo ", stakeholdersSaldo)
   // book salden betwee4n personen until all salden of personen are equal
   // start with the person with the lowest saldo that absolute value is  lowwer thatn the highest saldo
   let maxIterations = 100
@@ -247,10 +247,12 @@ const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
     book (b, from, to )
     min.saldo += amount
     max.saldo -= amount
-    logd("balanceSalden. min ", min, "max ", max)
+    // logd("balanceSalden. min ", min, "max ", max)
   }
   return bs
 }
+
+
 </script>
 <style scoped>
 .grey {

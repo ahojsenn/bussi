@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
+import { URL } from '../mixins/url'
 import logd from '../mixins/logDebug'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
@@ -16,11 +17,11 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   return ret
 }
 
-const GURL = 'https://docs.google.com/spreadsheets/d/'
-const GKEY = '1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M'
+logd("store.stakeholder: at start...")
+
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GSN_sheet = '&sheet=stakeholder'
-const GdataUrl = GURL + GKEY + GMAGIC + GSN_sheet
+const GdataUrl = URL + GMAGIC + GSN_sheet
 
 export const useStakeholderStore = defineStore('stakeholder', {
   state: () => ({

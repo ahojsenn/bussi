@@ -1,7 +1,7 @@
 import { book } from './book';
 import logd from './logDebug';
 import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
-import { bookingIsTanken } from './bookingHelpers';
+import { bookingIsTanken, isAusgleichsbuchung } from './bookingHelpers';
 
 const euroToNumber = (e: string | number) =>
   typeof e === "string" ? parseFloat(e.replaceAll('.', '').replace('€', '').trim().replace(',', '.'))
@@ -28,6 +28,21 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
     for (var split of splits) {
       const splitAccount = split.trim()
+
+      // Ausgleichsbuchungen durchführen, die erkennt man am "an: "+Stakeholder im key
+      if (isAusgleichsbuchung(booking)) {
+        const from = bs.findAccount(splitAccount, "Ausgleichskonto")
+        const to = bs.findAccount(booking.key.slice(4), "Ausgleichskonto")  // slice(4), weil "an: " 4 Characters hat...
+        const betrag = euroToNumber(booking.amount) / splits.length
+        const text = booking.account + " Ausgleichsbuchung an " + booking.key.slice(4) + " " + betrag
+        const bk = new Booking(booking.nr, booking.date, 0,
+          betrag,
+          text,
+          +booking.km - +(booking.kmSinceLastEntry || "0"))
+        book(bk, from, to)
+        bookingWasUsed = true
+        logd("bookEverythingtoBS: ausgleichbuchung gefunden ", booking.key, booking.key.slice(4), from, to, bk)
+      }
 
       // zuerst Benzinpreis aktualisieren, Verbrauch aktualisieren
       if (bookingIsTanken(booking)) {
@@ -184,7 +199,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       /* Nullbuchung ignorieren */
       if ((euroToNumber(booking.amount) === 0) && +(booking.kmSinceLastEntry || "0") === 0) {
         bookingWasUsed = true
-        logd("Nullbuchung ignoriert: ", booking)
+        logd("Nullbuchung ignoriert: " + booking + " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
       }
 
       /* Fehler buchen */

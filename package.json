@@ -32,6 +32,7 @@
     "papaparse": "^5.3.2",
     "pinia": "^2.0.30",
     "pug-lint": "^2.6.0",
+    "ramda": "^0.29.1",
     "ts-jest": "^29.0.5",
     "vscode-languageclient": "^8.1.0",
     "vue": "^3.2.47"

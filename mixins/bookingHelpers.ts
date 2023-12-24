@@ -1,5 +1,6 @@
 import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
 
+export const isAusgleichsbuchung = (bk: HauptbuchBooking) => bk.key.indexOf("an: ") === 0
 export const bookingIsTanken = (booking: HauptbuchBooking) => +(booking.kmSinceLastFuelFill || "0") != 0 || "Tanken".indexOf(booking.description) > 0
 // find out, who has driven how many km since the last fuel fill-up
 export const whoHasDrivenHowManyKmSinceLastFill = (allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any): Object => {
