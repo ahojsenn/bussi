@@ -9,7 +9,7 @@ div
   div Benzin: {{ allLiter() }} Liter
   div CO2: {{ tonnenCO2() }} Tonnen CO2  
   div Verbrauch: {{ verbrauchOverall() }} Liter/100km
-  div Reparaturpauschale: {{perioden.reparaturpauschale("2022")}}€
+  div Reparaturpauschale: {{perioden.reparaturpauschale(perioden.currentPeriod)}}€
   div &nbsp;
 
   div(v-if="toRender.bookings.length != 0") 
@@ -29,6 +29,7 @@ div
         td 
           table.inner(:style="{width: '100%'}")
             th.inner Kontobezeichnung 
+            th.innter #Buchungen
             th.inner Saldo 
             th.inner.grey Soll
             th.inner.grey Haben
@@ -37,9 +38,10 @@ div
                 a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
                   span {{ a.Bezeichnung }} 
                 span  &nbsp;&nbsp;&nbsp;&nbsp;
-              td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }}  
-              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }}
-              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }}          
+              td.inner {{ bs.findAccount(sh, a.Name).bookings.length }} 
+              td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} €
+              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
+              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
   br            
   br
 </template>
@@ -48,20 +50,14 @@ div
 import { useStakeholderStore } from '../stores/stakeholder'
 import {Account, BussiAccountSystem, HauptbuchBooking} from '../mixins/types'
 import { useHauptbuchStore } from '../stores/hauptbuch'
-import { useBuchungenStore } from '../stores/buchungen'
 import {usePeriodenStore} from '../stores/perioden'
 import { Booking } from '../mixins/types'
 import {book} from '../mixins/book'
 import logd from '../mixins/logDebug';
 import { useAccountsStore } from '../stores/accounts'
 import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
-import * as R  from 'ramda'
-import {bookEverythingtoBS} from '../mixins/bookEverythingtoBS'
+import {bookEverythingtoBS} from '../mixins/bookWithBuchungsLogik'
 import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../mixins/bookingHelpers';
-//import { useRoute } from 'vue-router'
-
-// helpers ...
-const shorten = (s: string) => s.length > 60 ? s.substr(0,60) + '...' : s
 
 
 const toRender =  reactive({
@@ -234,8 +230,8 @@ const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
   while (true && maxIterations-- > 0) {
     const min = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo < e.saldo ? acc : e)
     const max = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo > e.saldo ? acc : e)
-    if (min.saldo >= 0) break
-    if (max.saldo <= 0) break
+    if (min.saldo >= 0.01) break // all salden are equal, but tolerate a one cent difference
+    if (max.saldo <= 0.01) break // all salden are equal, but tolerate a one cent difference
     const amount = Math.min(-min.saldo, max.saldo)
     const from = bs.findAccount(max.name, "Ausgleichskonto")
     const to = bs.findAccount(min.name, "Ausgleichskonto")
@@ -285,4 +281,4 @@ th {
   border-radius: 6px;
   border-width: 0px;}
 
-</style>
+</style>../mixins/bookWithBuchungsLogik

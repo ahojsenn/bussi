@@ -18,10 +18,10 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   return ret
 }
 
-
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GEDIT = '/edit#gid=1543409034'
-const GdataUrl = URL + GMAGIC
+const GSN_sheet = '&sheet=FahrtenbuchV-'
+const GdataUrl = URL + GMAGIC + GSN_sheet
 const toEuro = (s: string): string => s.indexOf('€') > 0 ? s : parseFloat(s == '' ? '0' : s) + ' €'
 
 export const useHauptbuchStore = defineStore('hauptbuch', {
@@ -32,7 +32,9 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
   actions: {
     async loadBussiData(period?: string) {
 
+      console.log("hauptbuch.loadBussiData: ", period, GdataUrl)
       const gdata = await getDataFromGoogle(GdataUrl)
+      // console.log("hauptbuch.loadBussiData: ", period, gdata.data.length, gdata.data)
 
       // add rowNr to the raw dataset before any filters are applied
       let data1 = gdata.data.map((e: any, i: number) => {
@@ -48,6 +50,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) <= date)
       }
 
+      console.log("hauptbuch.loadBussiData: ", period, data1.length, data1)
       /* create a ling in the text filed >*/
       const linkTo = (s: string, rnr: number): string =>
         '<a target="_blank" href='
@@ -67,7 +70,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         b["km seit letzter Tankung"],
         parseFloat(b["Verbrauch/l"].replace(',', '.')) || 0,
       ))
-      // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
+      logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
   },
   getters: {

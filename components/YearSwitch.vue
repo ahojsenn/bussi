@@ -7,7 +7,6 @@ form#my-global
   
 <script setup lang="ts">
 import { usePeriodenStore } from '@/stores/perioden'
-import {watch,onMounted} from 'vue'
 import logd from '../mixins/logDebug';
 const periods = usePeriodenStore()
 await periods.loadDataFromGoogle()
@@ -15,6 +14,7 @@ const years = periods.listOfPeriods
 let selectedyear = periods.currentPeriod
 
 const changeFinancialYear = () => {
+  logd('\n\n\nchangeFinancialYear', selectedyear)
   periods.setPeriod(selectedyear)
 }
 

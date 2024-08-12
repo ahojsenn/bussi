@@ -1,7 +1,7 @@
 import { book } from './book';
 import logd from './logDebug';
 import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
-import { bookingIsTanken, isAusgleichsbuchung } from './bookingHelpers';
+import { bookingIsTanken, isAusgleichsbuchung, isJahresBeitragsBuchung } from './bookingHelpers';
 
 const euroToNumber = (e: string | number) =>
   typeof e === "string" ? parseFloat(e.replaceAll('.', '').replace('€', '').trim().replace(',', '.'))
@@ -18,16 +18,38 @@ let verbrauch = 0
 export const bookEverythingtoBS = (bs: BussiAccountSystem,
   allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
 
-  logd("bookEverythingtoBS: ", perioden.currentPeriod)
+  // logd("bookEverythingtoBS: ", perioden.currentPeriod)
   for (var booking of allBookingsOfPeriod) {
     let bookingWasUsed = false
-    //logd ("booking: ", booking.key)
+    //logd("booking: ", booking.description, booking.account, booking.key)
     const splits = shStore.shVerteilung(booking.account).split(',')
     const splitBooking = splits.length > 1  /* if there is a '&', we have to split the booking */
-    //logd("splitBooking: ", splitBooking, splits)
+    //logd("splitBooking: ", splitBooking, splits, booking)
 
     for (var split of splits) {
       const splitAccount = split.trim()
+
+      // is slpitAccount in the account list?
+      if (!bs.findAccount(splitAccount, "Konto 1")) {
+        logd("Error: Konto nicht gefunden: ", splitAccount, booking)
+        const from = bs.findAccount("System", "Errors")
+        const to = bs.findAccount("System", "Errors1")
+        const text = "Konto " + splitAccount + " nicht gefunden"
+        const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
+        book(bk, from, to)
+        bookingWasUsed = true
+      }
+
+      // Jahresbeitrag buchen
+      if (isJahresBeitragsBuchung(booking)) {
+        const from = bs.findAccount("Bussi", "Konto 1")
+        const to = bs.findAccount(splitAccount, "Konto 1")
+        const betrag = euroToNumber(booking.amount) / splits.length
+        const text = booking.account + " Jahresbeitrag " + booking.description + " " + betrag + " " + booking.amount
+        const bk = new Booking(booking.nr, booking.date, 0, betrag, text, +booking.km)
+        book(bk, from, to)
+        bookingWasUsed = true
+      }
 
       // Ausgleichsbuchungen durchführen, die erkennt man am "an: "+Stakeholder im key
       if (isAusgleichsbuchung(booking)) {
@@ -52,6 +74,20 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         if (booking.consumption && +booking.consumption != 0) {
           verbrauch = Math.round(100 * booking.consumption) / 100
           // logd("bookEverythingtoBS: set verbrauch to ", verbrauch, 100 * booking.consumption)
+
+          // check if the verbrauch is in the correct range 8,5 - 10,5 liter/100km
+          if (verbrauch < 8 || verbrauch > 11) {
+            const from = bs.findAccount("System", "Errors")
+            const to = bs.findAccount("System", "Errors1")
+            const text = "falscher Verbrauchswert:   " + verbrauch + "  Liter/100km<br>"
+              + booking.account + " Verbrauch " + booking.description + " "
+              + "<br> amount:" + booking.amount + " " + euroToNumber(booking.amount)
+              + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
+              + "<br> splits:" + splits
+              + "<br> booking:" + JSON.stringify(booking)
+            const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
+            book(bk, from, to)
+          }
         }
       }
 

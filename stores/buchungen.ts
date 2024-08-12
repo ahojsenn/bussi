@@ -1,6 +1,5 @@
 import { HauptbuchBooking } from './../mixins/types';
 import { defineStore } from 'pinia'
-import { Booking } from '../mixins/types'
 
 
 /*
