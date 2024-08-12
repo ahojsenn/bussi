@@ -33,6 +33,8 @@ Build the application for production:
 
 ```bash
 npm run build
+
+https://ahojsenn.github.io/bussi
 ```
 
 Locally preview production build:
