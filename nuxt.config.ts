@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   typescript: {
     strict: true
   },
+  compatibilityDate: '2025-12-14',
 
   generate: {
     routes: ['/', '/stakeholder', '/accounts', '/hauptbuch', '/balance']

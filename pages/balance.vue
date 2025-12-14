@@ -19,29 +19,32 @@ div
       Table(:selectedBookingsToRender="toRender.bookings" :konto="toRender.name" )
 
   div(v-else)
-    table 
-      tr(v-for="sh in stakeholderNames")
-        td {{ sh }}
-          a(href="#" @click="selectToRender(bs.findAccount(sh,'Kilometer'))") 
-            div Kilometer: {{ Math.abs(bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod)) }} km
-          div 
-            b Saldo: {{ bs.saldierenEuro(sh) }} €
-        td 
-          table.inner(:style="{width: '100%'}")
-            th.inner Kontobezeichnung 
-            th.innter #Buchungen
-            th.inner Saldo 
-            th.inner.grey Soll
-            th.inner.grey Haben
-            tr.inner(v-for="a in accountStore.accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
-              td.inner
-                a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
-                  span {{ a.Bezeichnung }} 
-                span  &nbsp;&nbsp;&nbsp;&nbsp;
-              td.inner {{ bs.findAccount(sh, a.Name).bookings.length }} 
-              td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} €
-              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
-              td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
+    table
+      tbody
+        tr(v-for="sh in stakeholderNames")
+          td {{ sh }}
+            a(href="#" @click="selectToRender(bs.findAccount(sh,'Kilometer'))") 
+              div Kilometer: {{ Math.abs(bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod)) }} km
+            div 
+              b Saldo: {{ bs.saldierenEuro(sh) }} €
+          td 
+            table.inner(:style="{width: '100%'}")
+              tbody
+                tr
+                  th.inner Kontobezeichnung 
+                  th.innter #Buchungen
+                  th.inner Saldo 
+                  th.inner.grey Soll
+                  th.inner.grey Haben
+                tr.inner(v-for="a in accountStore.accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
+                  td.inner
+                    a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
+                      span {{ a.Bezeichnung }} 
+                    span  &nbsp;&nbsp;&nbsp;&nbsp;
+                  td.inner {{ bs.findAccount(sh, a.Name).bookings.length }} 
+                  td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} €
+                  td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
+                  td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
   br            
   br
 </template>
@@ -154,64 +157,6 @@ const balanceKonto1 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
   return bs
 }
 
-/*
-// balance Konto2 to tho whoever has driven since the last fuel up
-const balanceKonto2 =  (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
-  const kmSinceLastFill = whoHasDrivenHowManyKmSinceLastFill(allBookingsOfPeriod, shStore)
-  //logd("balanceKonto2. kmSinceLastFill ", kmSinceLastFill)
-  const allKmSinceLastFill = Object.values(kmSinceLastFill).reduce((acc: number, e: number) => acc + e, 0)  
-  //logd("balanceKonto2. allKmSinceLastFill ", allKmSinceLastFill)
-  // distribute the Saldo of Bussi Konto 2 to the people according to kmSinceLastFill
-  const from = bs.findAccount("Bussi", "Konto 2")
-  const saldo = from.saldoY(perioden.currentPeriod)
-  if (saldo === 0) return bs // do not work for nothing
-  let rest = saldo
-  Object.entries(kmSinceLastFill).map((e: any) => {
-    //logd("balanceKonto2. e ", e, e[0], e[1])
-    if (e[1] === 0) return // no km driven
-    const to = bs.findAccount(e[0], "Konto 2")
-    let amount = Math.round(100*saldo * e[1] / allKmSinceLastFill)/100
-    rest -= amount
-    //logd("balanceKonto2. amount ", amount, "rest ", rest)
-    if (Math.abs(rest) < 0.02) amount += Math.round(rest*100)/100
-    const Buchungstext = "Ausgleichsbuchung Konto2 "+perioden.currentPeriod+" für am Jahresende nicht vollgetankte Kilometer<br>"
-      +" "+e[1]+"km von "+allKmSinceLastFill+"km * "+saldo+ "€<br>"
-      +from.owner+":"+from.name +" -> "+to.owner+":"+to.name 
-      + "<br> Amount: "+amount
-    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , amount, 0, Buchungstext) 
-    book (b, from, to )
-  })
-}
-*/
-/*
-// balance Konto 3 according to the km driven
-const balanceKonto3 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
-  logd("balanceKonto3. allBookingsOfPeriod ", allBookingsOfPeriod)
-  const to = bs.findAccount("Bussi", "Konto 3")
-  const saldo = -to.saldoY(perioden.currentPeriod)
-  const allKm = bs.findAccount('Bussi', 'Kilometer').saldoY(perioden.currentPeriod)
-  // if the amount is zero we don't have to do anything
-  if (saldo === 0) return bs
-  // otherwise we have to book the amount to each person
-  for (var tn of shStore.personen) {
-    const kmOfPerson = bs.findAccount(tn, 'Kilometer').saldoY(perioden.currentPeriod)
-    const amount = -saldo * kmOfPerson / allKm
-    const from = bs.findAccount(tn, "Konto 3")
-    const text = "Ausgleichsbuchung Konto3 "
-      +"<br>"+perioden.currentPeriod+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
-      +"<br>Amount: "+euroString(amount)
-      +"<br>km: "+kmOfPerson
-    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , amount, 0, text)
-    book (b, from, to )
-//    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)
-  }
-
-  return bs
-}
-*/
-
-// now we have to balance the accounts
-//bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
 const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
