@@ -2,6 +2,7 @@ import { book } from './book';
 import logd from './logDebug';
 import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
 import { bookingIsTanken, isAusgleichsbuchung, isJahresBeitragsBuchung } from './bookingHelpers';
+import { checkBookingSyntax } from './checkBookingSyntax';
 
 const euroToNumber = (e: string | number) =>
   typeof e === "string" ? parseFloat(e.replaceAll('.', '').replace('€', '').trim().replace(',', '.'))
@@ -14,13 +15,13 @@ const kmPerFill = (b: HauptbuchBooking): number => parseFloat(b.kmSinceLastFuelF
 let benzinpreis = 0
 let verbrauch = 0
 
-
 export const bookEverythingtoBS = (bs: BussiAccountSystem,
   allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
 
   // logd("bookEverythingtoBS: ", perioden.currentPeriod)
   for (var booking of allBookingsOfPeriod) {
     let bookingWasUsed = false
+    let bookingError = checkBookingSyntax(booking)
     //logd("booking: ", booking.description, booking.account, booking.key)
     const splits = shStore.shVerteilung(booking.account).split(',')
     const splitBooking = splits.length > 1  /* if there is a '&', we have to split the booking */
@@ -241,7 +242,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       }
 
       /* Fehler buchen */
-      if (!bookingWasUsed) {
+      if (!bookingWasUsed || bookingError != "") {
         logd("Fehler: ", booking, isAusgleichszahlung(booking))
         const from = bs.findAccount("System", "Errors")
         const to = bs.findAccount("System", "Errors1")
@@ -250,6 +251,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
           + "<br> splits:" + splits
           + "<br> booking:" + JSON.stringify(booking)
+          + "<br> Error:" + bookingError
         const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
         book(bk, from, to)
       }

@@ -23,6 +23,9 @@ nav.menu
     span.burgerMenuText
       NuxtLink(to="/hauptbuch") 
         Nuxt hauptbuch      
+    span.burgerMenuText
+      NuxtLink(to="/fahrtenbucheintrag") 
+        Nuxt fahrtenbucheintrag  
 </template>
 
 <script setup lang="ts">

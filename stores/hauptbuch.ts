@@ -60,7 +60,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         linkTo(b.rowNr, b.rowNr),
         b["Datum"],
         b["Wer"],
-        b["km (Endstand)"],
+        parseInt(b["km (Endstand)"].replace('.', '')) || 0,
         b["Liter getankt"],
         b["Benzinpreis"],
         toEuro(b["Betrag"]),

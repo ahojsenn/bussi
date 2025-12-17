@@ -4,9 +4,9 @@ export class HauptbuchBooking {
   nr: string
   date: string
   account: string
-  km: string
-  kmSinceLastEntry: string
-  kmSinceLastFuelFill?: string
+  km: number
+  kmSinceLastEntry: number
+  kmSinceLastFuelFill?: number
   liters: string
   consumption?: number
   fuelPriceInEuro: string
@@ -18,14 +18,14 @@ export class HauptbuchBooking {
     nr: string,
     date: string,
     account: string,
-    km: string,
+    km: number,
     liters: string,
     fuelPriceInEuro: string,
     amount: string,
     description: string,
     key: string,
-    kmSinceLastEntry: "0",
-    kmSinceLastFuelFill?: "0",
+    kmSinceLastEntry: 0,
+    kmSinceLastFuelFill?: 0,
     consumption?: number,
     rowNr?: number,
   ) {

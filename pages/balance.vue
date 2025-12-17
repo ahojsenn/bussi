@@ -62,11 +62,11 @@ import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
 import {bookEverythingtoBS} from '../mixins/bookWithBuchungsLogik'
 import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../mixins/bookingHelpers';
 
-
 const toRender =  reactive({
   bookings: [] as Array<Booking>,
   name: "",
 })
+
 const selectToRender = (account: Account) => {
   const bkngs = account.bookings
   toRender.bookings.splice(0, toRender.bookings.length)
@@ -135,6 +135,8 @@ const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + l
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
 const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
+
+
 
 
 //bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden.currentPeriod)
