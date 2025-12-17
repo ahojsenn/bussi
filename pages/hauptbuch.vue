@@ -11,7 +11,6 @@ import { usePeriodenStore } from '@/stores/perioden'
 import { checkBookingSyntax } from '~/mixins/checkBookingSyntax';
 import logd from '../mixins/logDebug';
 import {  onMounted,  getCurrentInstance} from 'vue'
-import type { HauptbuchBooking } from './types';
 const hauptbuch = reactive(useHauptbuchStore())
 const konto = "Hauptbuch"
 const vueInstance = getCurrentInstance()
@@ -33,8 +32,8 @@ watch(
 })
 
 // check syntax
-let lastBooking: Partial<HauptbuchBooking> = {}
-for (var booking of hauptbuch.bookings) {
+let lastBooking = structuredClone(hauptbuch.bookings[0]);
+for (const booking of hauptbuch.bookings) {
   errors.text += checkBookingSyntax(booking, lastBooking)
   Object.assign(lastBooking, booking)
 }
