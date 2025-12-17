@@ -2,10 +2,10 @@ import logd from './logDebug';
 import type { HauptbuchBooking } from './types';
 
 function isValidDate(dateString: string) {
-  var regEx = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateString.match(regEx)) return false;  // Invalid format
-  var d = new Date(dateString);
-  var dNum = d.getTime();
+  let regEx = /^\d{4}-\d{2}-\d{2}$/;
+  if (!new RegExp(regEx).exec(dateString)) return false;  // Invalid format
+  let d = new Date(dateString);
+  let dNum = d.getTime();
   if (!dNum && dNum !== 0) return false; // NaN value, Invalid date
   return d.toISOString().slice(0, 10) === dateString;
 }
@@ -26,7 +26,7 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
     errorCode += "<br> booking.date " + booking.date + "  " + new Date(booking.date).getTime() + " is before lastBooking.date " + lastBooking.date + " " + new Date(lastBooking.date).getTime()
 
   // check if amount is reasonable
-  if (parseFloat(booking.amount) < 0 || parseFloat(booking.amount) > 5000) errorCode += "<br>booking.amount " + booking.amount + " is unreasonable"
+  if (Number.parseFloat(booking.amount) < 0 || Number.parseFloat(booking.amount) > 5000) errorCode += "<br>booking.amount " + booking.amount + " is unreasonable"
 
   // check in km are reasonable
   if (booking.km < 0 || booking.km > 3000000) errorCode += "<br>booking.lm " + booking.km + " is unreasonable"
