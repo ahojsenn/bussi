@@ -97,6 +97,7 @@ const hauptbuch = useHauptbuchStore()
 
 const accountStore = useAccountsStore()
 await accountStore.loadDataFromGoogle()
+
 const accountBezeichnungen = accountStore.accountBezeichnungen
 const accountNames = accountStore.accountNames
 let allBookingsOfPeriod = reactive(hauptbuch.bookings) 
@@ -190,7 +191,7 @@ const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
     book (b, from, to )
     min.saldo += amount
     max.saldo -= amount
-    // logd("balanceSalden. min ", min, "max ", max)
+    //logd("balanceSalden. min ", min, "max ", max)
   }
   return bs
 }

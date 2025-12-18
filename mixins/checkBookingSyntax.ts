@@ -1,5 +1,6 @@
 import logd from './logDebug';
 import type { HauptbuchBooking } from './types';
+import { useStakeholderStore } from '../stores/stakeholder'
 
 function isValidDate(dateString: string) {
   let regEx = /^\d{4}-\d{2}-\d{2}$/;
@@ -34,10 +35,14 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
   // check kmSinceLastEntry
   if (+booking.nr > 0 && (booking.kmSinceLastEntry != booking.km - lastBooking.km)) errorCode += "km are wrong: " + booking.km
 
+  // check, if the new Bob is a valid Stakeholder
+  const sl = useStakeholderStore().stakeholderListe
+  if (sl.indexOf(booking.account) == -1) errorCode += "booking.account " + booking.account + " is not in " + sl
+
   // append row nr
   if (errorCode != "") errorCode += " in row " + booking.nr + "<br>"
 
-  if (errorCode != "") logd(errorCode)
+  // if (errorCode != "") logd(errorCode)
 
   return errorCode
 };

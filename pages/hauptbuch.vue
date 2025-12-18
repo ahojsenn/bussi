@@ -31,8 +31,8 @@ watch(
     logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", hauptbuch.bookings.length)
 })
 
-// check syntax
-let lastBooking = structuredClone(hauptbuch.bookings[0]);
+// check syntax of input file
+let lastBooking = hauptbuch.bookings[0];
 for (const booking of hauptbuch.bookings) {
   errors.text += checkBookingSyntax(booking, lastBooking)
   Object.assign(lastBooking, booking)
