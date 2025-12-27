@@ -41,7 +41,9 @@ export const useStakeholderStore = defineStore('stakeholder', {
       .filter(s => s["Name"] && s["Verteilung"].indexOf(',') === -1 && s["Name"] !== "Bussi")
       .map(s => s["Name"]),
     shVerteilung: (state) => function (shName: string) {
-      return state.stakeholder.find(s => s["Name"] == shName)["Verteilung"]
+      const v = state.stakeholder.find(s => s["Name"] == shName)["Verteilung"]
+      // if (v != shName) logd("in shVerteilung, found ", shName, " --> ", v)
+      return v
     }
   }
 })

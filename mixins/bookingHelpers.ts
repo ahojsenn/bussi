@@ -2,7 +2,7 @@ import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
 
 export const isAusgleichsbuchung = (bk: HauptbuchBooking) => bk.key.indexOf("an: ") === 0
 export const isJahresBeitragsBuchung = (bk: HauptbuchBooking) => bk.key.indexOf("Jahresbeitrag") === 0  // 0 means it is the first word
-export const bookingIsTanken = (booking: HauptbuchBooking) => +(booking.kmSinceLastFuelFill || "0") != 0 || "Tanken".indexOf(booking.description) > 0
+export const bookingIsTanken = (booking: HauptbuchBooking) => +(booking.kmSinceLastFuelFill || "0") > 0 || "Tanken".indexOf(booking.description) > 0
 // find out, who has driven how many km since the last fuel fill-up
 export const whoHasDrivenHowManyKmSinceLastFill = (allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any): Object => {
   const kmSinceLastFill = new Object() as { [key: string]: number }
@@ -16,7 +16,7 @@ export const whoHasDrivenHowManyKmSinceLastFill = (allBookingsOfPeriod: Array<Ha
     }
     const accounts = shStore.shVerteilung(b.account).split(',').map((item: string) => item.trim())
     accounts.forEach((who: string) => {
-      const km = +parseFloat(b.kmSinceLastEntry.replace(',', '.')) / accounts.length
+      const km = b.kmSinceLastEntry / accounts.length
       if (km === 0) return
       // throw error if who is not in shStore.personen
       if (!shStore.personen.includes(who)) {

@@ -42,15 +42,17 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         return e
       })
 
-      if (Number(period)) data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) === period)
-
       // if 'period' contains 'alles bis' then filter out all rows after the given date
       if (period && period.indexOf('bis') > 0) {
         const date = period.split('bis')[1].trim()
         data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) <= date)
       }
+      else if (isNaN(Number(period))) {    // ignore the selector and do not filter, i.e. take all values
+      }
+      else {
+        data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) === period)
+      }
 
-      console.log("hauptbuch.loadBussiData: ", period, data1.length, data1)
       /* create a ling in the text filed >*/
       const linkTo = (s: string, rnr: number): string =>
         '<a target="_blank" href='

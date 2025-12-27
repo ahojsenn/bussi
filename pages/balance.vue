@@ -2,8 +2,8 @@
 div 
   YearSwitch 
   h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen  
-  div(v-if="bs.findAccount('Bussi', 'Errors') .bookings.length > 0") 
-    a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors') .bookings.length  }}
+  div(v-if="bs.findAccount('Bussi', 'Errors').bookings.length >= 0") 
+    a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors').bookings.length  }}
 
   div Kilometer: {{ allKm() }} km
   div Benzin: {{ allLiter() }} Liter
@@ -59,7 +59,7 @@ import {book} from '../mixins/book'
 import logd from '../mixins/logDebug';
 import { useAccountsStore } from '../stores/accounts'
 import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
-import {bookEverythingtoBS} from '../mixins/bookWithBuchungsLogik'
+import {bookEverythingtoBS} from '../mixins/bookEverythingtoBS'
 import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../mixins/bookingHelpers';
 
 const toRender =  reactive({
@@ -110,21 +110,23 @@ const vueInstance = getCurrentInstance()
 watch(
   // reload the whole dammned thing
   perioden.$state , async (previous, current) => {
-  //logd('bilanz.watch.perioden changed', perioden.currentPeriod )
-  // empty the bs object
-  await hauptbuch.loadBussiData(perioden.currentPeriod)
-  allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-  bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
-  bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
-  bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
-  // konto 2 is not balanced
-  // bs = balanceKonto3(bs, allBookingsOfPeriod, shStore, perioden)
-  bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
-  if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
-  toRender.bookings = []
-  toRender.name = ""
-  //logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", allBookingsOfPeriod.length)
-})
+    //logd('bilanz.watch.perioden changed', perioden.currentPeriod )
+    // empty the bs object
+    await hauptbuch.loadBussiData(perioden.currentPeriod)
+    allBookingsOfPeriod = reactive(hauptbuch.bookings) 
+    bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
+    bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
+    logd("in balance.watch(): ", bs)
+    bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
+    // konto 2 is not balanced
+    // bs = balanceKonto3(bs, allBookingsOfPeriod, shStore, perioden)
+    bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
+    if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
+    toRender.bookings = []
+    toRender.name = ""
+    //logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", allBookingsOfPeriod.length)
+  }
+)
 
 
 /* now we have all bookings of the current period */

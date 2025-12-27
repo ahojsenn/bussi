@@ -12,17 +12,16 @@ let verbrauch = 0
 export const bookEverythingtoBS = (bs: BussiAccountSystem,
   allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
 
-  // logd("bookEverythingtoBS: ", perioden.currentPeriod)
+
+  logd("bookEverythingtoBS: ", perioden.currentPeriod, allBookingsOfPeriod)
   let lastBooking = allBookingsOfPeriod[0];
-  for (let booking of allBookingsOfPeriod) {
-    let bookingWasUsed = false
-    let bookingError = checkBookingSyntax(booking, lastBooking)
+  for (const [index, booking] of allBookingsOfPeriod.entries()) {
     //logd("booking: ", booking.description, booking.account, booking.key)
     const splits = shStore.shVerteilung(booking.account).split(',')
-    const splitBooking = splits.length > 1  /* if there is a '&', we have to split the booking */
-    //logd("splitBooking: ", splitBooking, splits, booking)
 
-    for (var split of splits) {
+    for (var split of splits) { // splits occur, E.g. Bob --> Frankziska & Nils
+      let bookingWasUsed = false
+      let bookingError = checkBookingSyntax(booking, lastBooking)
       const splitAccount = split.trim()
 
       // is slpitAccount in the account list?
@@ -72,7 +71,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           // logd("bookEverythingtoBS: set verbrauch to ", verbrauch, 100 * booking.consumption)
 
           // check if the verbrauch is in the correct range 8,5 - 10,5 liter/100km
-          if (verbrauch < 8 || verbrauch > 11) {
+          if (verbrauch < 7.5 || verbrauch > 12) {
             const from = bs.findAccount("System", "Errors")
             const to = bs.findAccount("System", "Errors1")
             const text = "falscher Verbrauchswert:   " + verbrauch + "  Liter/100km<br>"
@@ -108,44 +107,49 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       }
 
 
-      const kilometerWurdenGefahren = (b: HauptbuchBooking) => parseFloat(b.kmSinceLastEntry + "") != 0
-      if (kilometerWurdenGefahren(booking)) {
-        /* Kilometer wurden gefahren */
-        const from = bs.findAccount(splitAccount, "Kilometer")
-        const to = bs.findAccount("Bussi", "Kilometer")
-        const km = booking.kmSinceLastEntry //parseFloat(booking.kmSinceLastEntry || "0") / splits.length
-        const kmEnde = +booking.km
-        const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
-        const benzingeld = Math.round(benzinpreis * km * verbrauch) / 100
-        const reppausch = Math.round(100 * (+perioden.reparaturpauschale(perioden.currentPeriod).replace(",", ".")) * km) / 100
-        const text = booking.account + " Kilometer " + km
-          + " von " + booking.kmSinceLastEntry + " km, "
-          + splitAccount + "-->" + "Bussi"
-          + " " + booking.description
-          + "<br>Benzingeld: " + benzingeld + " €, Reparaturgeld: " + reppausch + " € für " + km + " km"
-        const bk = new Booking(booking.nr, booking.date, km, 0, text, kmStart)
-        book(bk, from, to)
-        bookingWasUsed = true
-
-        //logd("Kilometer: ", splits, bk, from, to)
-        /* Kilometer verbucht, nun Benzinpreis verbuchen */
-        const from1 = bs.findAccount(splitAccount, "Konto 2")
-        const to1 = bs.findAccount("Bussi", "Konto 2")
-        const text1 = "Benzingeld: " + splitAccount + "-->Bussi, " + benzingeld + " € für " + km + " km"
-          + ", Benzinpreis: " + benzinpreis + "€/L, Verbrauch: " + verbrauch + " =" + Math.round(benzinpreis * verbrauch) / 100 + "€/km"
-        const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1, kmStart)
-        book(bk1, from1, to1)
-
-
-        // Reparaturkosten aus Kilometern verbuchen
-        const from2 = bs.findAccount("Bussi", "Konto 3")
-        const to2 = bs.findAccount(splitAccount, "Konto 3")
-        const bk2 = new Booking(booking.nr, booking.date, 0, reppausch,
-          "Reparaturpauschale " + perioden.reparaturpauschale(perioden.currentPeriod) + " €/km * " + km + " km "
-          + "= " + reppausch + " € : " + splitAccount + " --> Bussi", kmStart
-        )
-        book(bk2, from2, to2)
+      const kilometerWurdenGefahren = (b: HauptbuchBooking) => Number.parseFloat(b.kmSinceLastEntry + "")
+      if (kilometerWurdenGefahren(booking) < 0) {
+        logd("in bookEveythingToBS: ERROR, negative km gefahren! ", booking)
+        bookingError += "<br>negative km gefahren!?!"
       }
+      else
+        if (kilometerWurdenGefahren(booking) > 0) {
+          /* Kilometer wurden gefahren */
+          const from = bs.findAccount(splitAccount, "Kilometer")
+          const to = bs.findAccount("Bussi", "Kilometer")
+          const km = booking.kmSinceLastEntry //parseFloat(booking.kmSinceLastEntry || "0") / splits.length
+          const kmEnde = +booking.km
+          const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
+          const benzingeld = Math.round(benzinpreis * km * verbrauch) / 100
+          const reppausch = Math.round(100 * (+perioden.reparaturpauschale(perioden.currentPeriod).replace(",", ".")) * km) / 100
+          const text = booking.account + " Kilometer " + km
+            + " von " + booking.kmSinceLastEntry + " km, "
+            + splitAccount + "-->" + "Bussi"
+            + " " + booking.description
+            + "<br>Benzingeld: " + benzingeld + " €, Reparaturgeld: " + reppausch + " € für " + km + " km"
+          const bk = new Booking(booking.nr, booking.date, km, 0, text, kmStart)
+          book(bk, from, to)
+          bookingWasUsed = true
+
+          //logd("Kilometer: ", splits, bk, from, to)
+          /* Kilometer verbucht, nun Benzinpreis verbuchen */
+          const from1 = bs.findAccount(splitAccount, "Konto 2")
+          const to1 = bs.findAccount("Bussi", "Konto 2")
+          const text1 = "Benzingeld: " + splitAccount + "-->Bussi, " + benzingeld + " € für " + km + " km"
+            + ", Benzinpreis: " + benzinpreis + "€/L, Verbrauch: " + verbrauch + " =" + Math.round(benzinpreis * verbrauch) / 100 + "€/km"
+          const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1, kmStart)
+          book(bk1, from1, to1)
+
+
+          // Reparaturkosten aus Kilometern verbuchen
+          const from2 = bs.findAccount("Bussi", "Konto 3")
+          const to2 = bs.findAccount(splitAccount, "Konto 3")
+          const bk2 = new Booking(booking.nr, booking.date, 0, reppausch,
+            "Reparaturpauschale " + perioden.reparaturpauschale(perioden.currentPeriod) + " €/km * " + km + " km "
+            + "= " + reppausch + " € : " + splitAccount + " --> Bussi", kmStart
+          )
+          book(bk2, from2, to2)
+        }
 
 
       /* Tankungen buchen  */
@@ -231,13 +235,15 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       }
 
       /* Nullbuchung ignorieren */
-      if ((euroToNumber(booking.amount) === 0) && +(booking.kmSinceLastEntry || "0") === 0) {
+      const isNullbuchung = (euroToNumber(booking.amount) === 0) && +(booking.kmSinceLastEntry || "0") === 0
+      if (isNullbuchung) {
         bookingWasUsed = true
-        logd("Nullbuchung ignoriert: " + booking + " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
+        // logd("Nullbuchung ignoriert: ", booking, " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
       }
 
       /* Fehler buchen */
-      if (!bookingWasUsed || bookingError != "") {
+      const bookingHasError = !bookingWasUsed || bookingError != ""
+      if (bookingHasError) {
         logd("Fehler: ", booking, isAusgleichszahlung(booking))
         const from = bs.findAccount("System", "Errors")
         const to = bs.findAccount("System", "Errors1")
@@ -250,8 +256,15 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
         book(bk, from, to)
       }
+      logd("in bookeEverythingtoBS this is booking:", index, allBookingsOfPeriod.length)
+
+      // if this is the last booking, do some logging
+      if (index === allBookingsOfPeriod.length - 1) {
+        logd("in bookeEverythingtoBS this is the last processed booking:", booking)
+      }
     }
   }
+
 
   return bs
 }

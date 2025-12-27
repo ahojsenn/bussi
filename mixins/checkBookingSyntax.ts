@@ -16,9 +16,6 @@ const lastBooking: Partial<HauptbuchBooking> = {}
 export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: HauptbuchBooking) => {
   let errorCode = ""
 
-
-
-
   // check if booking.date is a valid date
   if (!isValidDate(booking.date)) errorCode += "<br>" + "booking.date " + booking.date + " is invalid"
 
@@ -37,7 +34,12 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
 
   // check, if the new Bob is a valid Stakeholder
   const sl = useStakeholderStore().stakeholderListe
-  if (sl.indexOf(booking.account) == -1) errorCode += "booking.account " + booking.account + " is not in " + sl
+  if (sl.indexOf(booking.account) == -1)
+    errorCode += "booking.account " + booking.account + " is not in " + sl
+
+  // chek if kmSincelastFuelfill is not negative
+  if ((booking.kmSinceLastFuelFill) && booking.kmSinceLastFuelFill < 0)
+    errorCode += "booking.kmSinceLastFuelFill is negative "
 
   // append row nr
   if (errorCode != "") errorCode += " in row " + booking.nr + "<br>"
