@@ -30,7 +30,7 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
   if (booking.km < 0 || booking.km > 3000000) errorCode += "<br>booking.lm " + booking.km + " is unreasonable"
 
   // check kmSinceLastEntry
-  if (+booking.nr > 0 && (booking.kmSinceLastEntry != booking.km - lastBooking.km)) errorCode += "km are wrong: " + booking.km
+  if ((booking.kmSinceLastEntry != booking.km - lastBooking.km)) errorCode += "km are wrong: " + booking.km + "-" + lastBooking.km + " != " + booking.kmSinceLastEntry
 
   // check, if the new Bob is a valid Stakeholder
   const sl = useStakeholderStore().stakeholderListe

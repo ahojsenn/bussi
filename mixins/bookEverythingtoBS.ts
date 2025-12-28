@@ -1,27 +1,28 @@
 import { book } from './book';
 import logd from './logDebug';
 import { Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
-import { bookingIsTanken, isAusgleichsbuchung, isJahresBeitragsBuchung } from './bookingHelpers';
+import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
 import { euroToNumber } from './euroToNumber';
 
-const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
+const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
 let benzinpreis = 0
 let verbrauch = 0
 
-export const bookEverythingtoBS = (bs: BussiAccountSystem,
-  allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
+export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
 
-
-  logd("bookEverythingtoBS: ", perioden.currentPeriod, allBookingsOfPeriod)
+  logd("bookEverythingtoBS: ", perioden.currentPeriod, "::", allBookingsOfPeriod)
   let lastBooking = allBookingsOfPeriod[0];
   for (const [index, booking] of allBookingsOfPeriod.entries()) {
+    logd("bookEverythingtoBS starting: ", index, booking.account)
+    let bookingError = checkBookingSyntax(booking, lastBooking)
+    lastBooking = booking
     //logd("booking: ", booking.description, booking.account, booking.key)
     const splits = shStore.shVerteilung(booking.account).split(',')
+    logd("bookEverythingtoBS splits: ", splits)
 
-    for (var split of splits) { // splits occur, E.g. Bob --> Frankziska & Nils
+    for (const split of splits) { // splits occur, E.g. Bob --> Frankziska & Nils
       let bookingWasUsed = false
-      let bookingError = checkBookingSyntax(booking, lastBooking)
       const splitAccount = split.trim()
 
       // is slpitAccount in the account list?
@@ -35,8 +36,9 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         bookingWasUsed = true
       }
 
+      logd("xxx")
       // Jahresbeitrag buchen
-      if (isJahresBeitragsBuchung(booking)) {
+      if (bookingHelpers.isJahresBeitragsBuchung(booking)) {
         const from = bs.findAccount("Bussi", "Konto 1")
         const to = bs.findAccount(splitAccount, "Konto 1")
         const betrag = euroToNumber(booking.amount) / splits.length
@@ -47,7 +49,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       }
 
       // Ausgleichsbuchungen durchführen, die erkennt man am "an: "+Stakeholder im key
-      if (isAusgleichsbuchung(booking)) {
+      if (bookingHelpers.isAusgleichsbuchung(booking)) {
         const from = bs.findAccount(splitAccount, "Ausgleichskonto")
         const to = bs.findAccount(booking.key.slice(4), "Ausgleichskonto")  // slice(4), weil "an: " 4 Characters hat...
         const betrag = euroToNumber(booking.amount) / splits.length
@@ -62,7 +64,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
       }
 
       // zuerst Benzinpreis aktualisieren, Verbrauch aktualisieren
-      if (bookingIsTanken(booking)) {
+      if (bookingHelpers.bookingIsTanken(booking)) {
         if (euroToNumber(booking.fuelPriceInEuro))
           benzinpreis = Math.round(1000 * euroToNumber(booking.fuelPriceInEuro)) / 1000
         // logd("bookEverythingtoBS: set benzinpreis to ", benzinpreis, booking)
@@ -106,8 +108,9 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         bookingWasUsed = true
       }
 
+      logd("xxx2")
 
-      const kilometerWurdenGefahren = (b: HauptbuchBooking) => Number.parseFloat(b.kmSinceLastEntry + "")
+      const kilometerWurdenGefahren = (b: HauptbuchBooking) => b.kmSinceLastEntry
       if (kilometerWurdenGefahren(booking) < 0) {
         logd("in bookEveythingToBS: ERROR, negative km gefahren! ", booking)
         bookingError += "<br>negative km gefahren!?!"
@@ -117,7 +120,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           /* Kilometer wurden gefahren */
           const from = bs.findAccount(splitAccount, "Kilometer")
           const to = bs.findAccount("Bussi", "Kilometer")
-          const km = booking.kmSinceLastEntry //parseFloat(booking.kmSinceLastEntry || "0") / splits.length
+          const km = booking.kmSinceLastEntry / splits.length
           const kmEnde = +booking.km
           const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
           const benzingeld = Math.round(benzinpreis * km * verbrauch) / 100
@@ -131,7 +134,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
           book(bk, from, to)
           bookingWasUsed = true
 
-          //logd("Kilometer: ", splits, bk, from, to)
+          //logd("bookEverythingtoBS.Kilometer: ", splits, bk, from, to)
           /* Kilometer verbucht, nun Benzinpreis verbuchen */
           const from1 = bs.findAccount(splitAccount, "Konto 2")
           const to1 = bs.findAccount("Bussi", "Konto 2")
@@ -153,7 +156,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
 
 
       /* Tankungen buchen  */
-      if (bookingIsTanken(booking)) {
+      if (bookingHelpers.bookingIsTanken(booking)) {
         const amount = Math.round(100 * euroToNumber(booking.amount)) / 100
         // benzinpreis = Math.round(1000 * amount / liter(booking)) / 1000
         //benzinpreis = Math.round(1000 * euroToNumber(booking.fuelPriceInEuro)) / 1000
@@ -170,9 +173,10 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         const bk = new Booking(booking.nr, booking.date, betrag, 0, text, kmStart)
         book(bk, from, to)
         bookingWasUsed = true
-        //logd("Tanken: ", splits, bk, from, to, booking)
+        // logd("bookEverythingToBS.Tanken: ", splits, bk, from, to, booking.kmSinceLastFuelFill)
         /* Tanken verbucht */
       }
+      logd("xxx3")
 
 
       /* Konto1: Nutzungsunabhängige Dinge */
@@ -214,24 +218,29 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         bookingWasUsed = true
       }
 
-      const jahresendbuchung = (b: HauptbuchBooking): boolean => b.key.toLowerCase() === "jahresendbuchung"
+      const jahresendbuchung = (b: HauptbuchBooking): boolean => (b.key.toLowerCase() === "jahresendbuchung")
       if (jahresendbuchung(booking)) {
-        const splitLines = (t: string) => t.split(/\r\n|\r|\n/)
+        // const splitLines = (t: string) => t.split(/\r\n|\r|\n/)
         // booking has description with sender:senderaccount  ->  receiver:receiveraccount
         const rsplit = booking.description.match('[A-Za-z0-9_.]*:[A-Za-z0-9_.]*.[0-9]* -> [A-Za-z0-9_.]*:[A-Za-z0-9_.]*.[0-9]*')
         const bookingdescr = rsplit ? rsplit[0] : ""
         //logd("jahresendbuchung: ", booking.description, bookingdescr, rsplit)
-        if (bookingdescr === "") return bs
-        const sender = bookingdescr.split(" -> ")[0].split(":")[0]
-        //logd("jahresendbuchung: sender", sender, euroToNumber(booking.amount))
-        const receiver = bookingdescr.split(" -> ")[1].split(":")[0]
-        const senderaccount = bookingdescr.split(" -> ")[0].split(":")[1]
-        const receiveraccount = bookingdescr.split(" -> ")[1].split(":")[1]
-        const from = bs.findAccount(sender, senderaccount)
-        const to = bs.findAccount(receiver, receiveraccount)
-        const bk = new Booking(booking.nr, booking.date, euroToNumber(booking.amount), 0, booking.description, +booking.km)
-        book(bk, from, to)
-        bookingWasUsed = true
+        if (bookingdescr === "") {
+          bookingError += "malformed Jahresendbuchung, expected something like 'Dagmar:Konto 1 -> Bussi:Konto 1' "
+          // return bs
+        }
+        else {
+          const sender = bookingdescr.split(" -> ")[0].split(":")[0]
+          //logd("jahresendbuchung: sender", sender, euroToNumber(booking.amount))
+          const receiver = bookingdescr.split(" -> ")[1].split(":")[0]
+          const senderaccount = bookingdescr.split(" -> ")[0].split(":")[1]
+          const receiveraccount = bookingdescr.split(" -> ")[1].split(":")[1]
+          const from = bs.findAccount(sender, senderaccount)
+          const to = bs.findAccount(receiver, receiveraccount)
+          const bk = new Booking(booking.nr, booking.date, euroToNumber(booking.amount), 0, booking.description, booking.km)
+          book(bk, from, to)
+          bookingWasUsed = true
+        }
       }
 
       /* Nullbuchung ignorieren */
@@ -241,10 +250,12 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         // logd("Nullbuchung ignoriert: ", booking, " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
       }
 
+      logd("xxxziel")
+
       /* Fehler buchen */
-      const bookingHasError = !bookingWasUsed || bookingError != ""
-      if (bookingHasError) {
-        logd("Fehler: ", booking, isAusgleichszahlung(booking))
+      if (!bookingWasUsed) bookingError = "booking was not used<br>" + bookingError
+      if (bookingError != "") {
+        logd("Fehler: ", booking.amount, " : ", booking.liters)
         const from = bs.findAccount("System", "Errors")
         const to = bs.findAccount("System", "Errors1")
         const text = booking.account + " Konto 1 " + booking.description + " "
@@ -256,8 +267,8 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem,
         const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
         book(bk, from, to)
       }
-      logd("in bookeEverythingtoBS this is booking:", index, allBookingsOfPeriod.length)
 
+      logd("bookEverathingToBS: ", index, booking)
       // if this is the last booking, do some logging
       if (index === allBookingsOfPeriod.length - 1) {
         logd("in bookeEverythingtoBS this is the last processed booking:", booking)

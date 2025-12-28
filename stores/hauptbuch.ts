@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 import logd from '../mixins/logDebug'
 import { URL } from '../mixins/url'
+import * as bookingHelpers from '../mixins/bookingHelpers'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {
@@ -22,7 +23,6 @@ const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GEDIT = '/edit#gid=1543409034'
 const GSN_sheet = '&sheet=FahrtenbuchV-'
 const GdataUrl = URL + GMAGIC + GSN_sheet
-const toEuro = (s: string): string => s.indexOf('€') > 0 ? s : parseFloat(s == '' ? '0' : s) + ' €'
 
 export const useHauptbuchStore = defineStore('hauptbuch', {
   state: () => ({
@@ -65,14 +65,14 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         parseInt(b["km (Endstand)"].replace('.', '')) || 0,
         b["Liter getankt"],
         b["Benzinpreis"],
-        toEuro(b["Betrag"]),
+        bookingHelpers.toEuro(b["Betrag"]),
         b["Was"],
         b["V-Schlüssel"],
         b["km"],
         b["km seit letzter Tankung"],
         parseFloat(b["Verbrauch/l"].replace(',', '.')) || 0,
       ))
-      logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
+      // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
   },
   getters: {

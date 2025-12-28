@@ -1,8 +1,8 @@
 <template lang="pug">
 div 
   YearSwitch 
-  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen  
-  div(v-if="bs.findAccount('Bussi', 'Errors').bookings.length >= 0") 
+  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen
+  div(v-if="bs.findAccount('Bussi', 'Errors').bookings.length > 0") 
     a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors').bookings.length  }}
 
   div Kilometer: {{ allKm() }} km
@@ -117,10 +117,10 @@ watch(
     bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
     bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
     logd("in balance.watch(): ", bs)
-    bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
+    // bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
     // konto 2 is not balanced
     // bs = balanceKonto3(bs, allBookingsOfPeriod, shStore, perioden)
-    bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
+    // bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
     if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
     toRender.bookings = []
     toRender.name = ""

@@ -85,14 +85,15 @@ export class Account {
   saldo(): number {
     //logd("saldo: ", this.name, this.owner, this.soll, this.haben, "")
     return Math.round(100 *
-      + this.bookings.reduce((acc, cv) => acc += +cv.haben - cv.soll, 0)
+      + this.bookings.reduce((acc, cv) => acc += cv.haben - cv.soll, 0)
       //- this.soll.reduce((acc, cv) => acc += +cv.amount, 0) 
     ) / 100
   }
   saldoY(year: string): number {
+    // this should also work with periods like 'über alles' or 'alles bis 2022'
     return Number(year) ? Math.round(100 *
       + this.bookings.filter(b => b.date.substring(0, 4) === year.toString())
-        .reduce((acc, cv) => acc += +cv.haben - cv.soll, 0)
+        .reduce((acc, cv) => acc += cv.haben - cv.soll, 0)
     ) / 100
       : this.saldo()
   }
