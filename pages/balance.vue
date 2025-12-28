@@ -120,7 +120,7 @@ watch(
     // bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
     // konto 2 is not balanced
     // bs = balanceKonto3(bs, allBookingsOfPeriod, shStore, perioden)
-    // bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
+    bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
     if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
     toRender.bookings = []
     toRender.name = ""
