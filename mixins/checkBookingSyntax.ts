@@ -24,7 +24,10 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
     errorCode += "<br> booking.date " + booking.date + "  " + new Date(booking.date).getTime() + " is before lastBooking.date " + lastBooking.date + " " + new Date(lastBooking.date).getTime()
 
   // check if amount is reasonable
-  if (Number.parseFloat(booking.amount) < 0 || Number.parseFloat(booking.amount) > 5000) errorCode += "<br>booking.amount " + booking.amount + " is unreasonable"
+  if (
+    ((Number.parseFloat(booking.amount) < 0) && (booking.key != "Jahresendbuchung"))
+    || Number.parseFloat(booking.amount) > 5000)
+    errorCode += "<br>booking.amount " + booking.amount + " is unreasonable" 
 
   // check in km are reasonable
   if (booking.km < 0 || booking.km > 3000000) errorCode += "<br>booking.lm " + booking.km + " is unreasonable"

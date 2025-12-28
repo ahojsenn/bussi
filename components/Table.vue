@@ -81,7 +81,7 @@ interface Filter {
   isAnti: boolean
 }
 
-const ROWSPERPAGE = 500
+const ROWSPERPAGE = 1500
 const props = defineProps({
   konto: {
     type: String,
@@ -196,7 +196,7 @@ const columns = function (antifilter = "Net FileCreated Steuer Year Month") {
   else
     return (md.rows.length === 0)
       ? []
-      : Object.keys(md.rows[0]).filter(
+      : Object.keys(md.rows[0] || []).filter(
           (d) => !(antifilter.includes(d))
         )
 }
@@ -211,13 +211,13 @@ const euro = function (x: number) {
 const euroStringToNumber = (x: string): number =>
   +x.replace("€", "").replace(".", "").replace(",", ".").trim()
 const sumRow = function sum(title: string): number {
-  let mySum = md.rows?.reduce((acc: number, row) => acc + +row[title], 0) || 0
+  let mySum = md.rows?.reduce((acc: number, row: any) => acc + +row[title], 0) || 0
   return Math.round(100 * mySum) / 100
 }
 const sumEuro = function sumEuro(title: string) {
   let mySum = 0
   if (md.rows === undefined) return ""
-  md.rows.forEach(function (row) {
+  md.rows.forEach(function (row: any ){
     if (row[title] === undefined) return
     mySum += euroStringToNumber(row[title])
   })
@@ -232,14 +232,16 @@ const sumEuro = function sumEuro(title: string) {
   })
   return mySumString
 }
-const sum = function sum(title) {
+/*
+const sum = function sum(title:any) {
   let mySum = 0
-  md.rows.forEach(function (row) {
+  (md.rows || []).forEach(function (row: any) {
     mySum += row[title]
   })
   return Math.round(100 * mySum) / 100
 }
-
+*/
+/*
 const setFilterText = function setFilterText() {
   const str = newFilter
   const filter: Filter = { title: "", value: "", isAnti: false }
@@ -250,16 +252,17 @@ const setFilterText = function setFilterText() {
   setFilter(filter.title, filter.value, filter.isAnti)
   newFilter = null
 }
+*/
 const getFilterFromQuery = function () {
   md.filters =
     $route.query && $route.query.filters
-      ? JSON.parse(decodeURIComponent($route.query.filters))
+      ? JSON.parse(decodeURIComponent($route.query.filters.toString()))
       : [] // filters]
   md.rows = data
   setPage(pageNr)
-  md.rows = executeFilter(md.rows, md.filters)
+  md.rows = executeFilter(md.rows || [], md.filters)
 }
-
+/*
 const setFilter = function setFilter(title: string, value: string, isAntiFilter: boolean) {
   logd("Table.setfilter: ", title, value)
   const filter = { title, value, isAnti: isAntiFilter }
@@ -278,7 +281,8 @@ const setFilter = function setFilter(title: string, value: string, isAntiFilter:
   md.rows = executeFilter(md.rows, md.filters)
   logd("Table.setfilter: ", md.filters)
 }
-
+  */
+/*
 const deleteFilter = function deleteFilter(filter) {
   logd("Table.deleteFiler: ", filter, md.filters)
   const index = md.filters.indexOf(filter)
@@ -294,7 +298,7 @@ const deleteFilter = function deleteFilter(filter) {
   setPage(pageNr)
   md.rows = executeFilter(md.rows, md.filters)
 }
-
+*/
 const executeFilter = function (d: any[], filters: Filter[]): any[] {
   return d.filter(function (row) {
     let retval = true
@@ -316,6 +320,7 @@ const executeFilter = function (d: any[], filters: Filter[]): any[] {
     return retval
   })
 }
+/*
 const logArray = function logArray(arr) {
   console.log("in logArray", arr)
 }
@@ -328,6 +333,7 @@ const sortArray = function sortArray(array, sortKey) {
     array.sort((a, b) => a[key] < b[key])
   }
 }
+  */
 
 setPage(1)
 //getFilterFromQuery()
