@@ -1,9 +1,9 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" ) 
-  div(v-if="hauptbuch.access_token==''")
-    googleOauth(@update_access_token="set_access_token($event)")
-  div access_token: {{hauptbuch.access_token}}
-  Popup(v-if="popup" :data="popupData" @closePopup="closePopup") 
+  button(@click="showPopup.show = true") Open Popup
+  Popup(v-model="popupData" )
+  div(v-if="hauptbuch.access_token!=''") access_token: {{hauptbuch.access_token}}
+  
   div Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}  
   button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'") Fahrt
   button( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'") Tanken
@@ -44,16 +44,17 @@ form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" )
       input(type="text" name="amount" placeholder="amount" required)
     div Schlüssel
       input(type="text" name="key" placeholder="key" )
-  div
-    input(type="text" name="kmSinceLastEntry" :value="thisbk.description" :placeholder="thisbk.description" )
+  div gefahren: {{km.kmDriven()}}km
   div 
     button(type="submit") ins Fahrtenbuch eintragen
 </template>
 
 <script setup lang="ts">
+import { acceptHMRUpdate } from 'pinia'
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { useStakeholderStore } from '../stores/stakeholder' 
 import { HauptbuchBooking } from './../mixins/types'
+import logd from '~/mixins/logDebug'
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
@@ -65,35 +66,35 @@ const set_access_token = (token: string) => {
 }
 
 /* catch the event 'closePopup' from th e popup component */
-let popup = ref(false)
-let popupData = ref('you should not see this!')
-const closePopup = () => popup.value = false
+//let showPopup = ref(false)
+let popupData = ref({show: false, text: 'you should not see this!'})
+//const closePopup = () => showPopup.value = false
 
 
 const bookingtype = ref('Fahrt')
 const today = new Date().toISOString().slice(0, 16)
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length-1])
 const thisbk = ref(new HauptbuchBooking(
-  (hauptbuch.bookings.length + 1).toString(),  // nr: string
-  today, // date: string
-  '', // account: string
-  lastbk.value.km, // km: string
-  '', // kmSinceLastEntry: string
-  'asdc', // kmSinceLastFuelFill?: string
-  'asd',// liters: string
-  "gefahren: 0 km,...",// description: number
-  'asdfads',// fuelPriceInEuro: string
-  'adsfas', // amount: string
-  'adas',// consumption: number
-  '', // key: string
-  "0"// rowNr: number 
+    (hauptbuch.bookings.length + 1).toString(),//nr: string,
+    today,//date: string,
+    '',//account: string,
+    lastbk.value.km,//km: number,
+    '',//liters: string,
+    '',//fuelPriceInEuro: string,
+    '',//amount: string,
+    '',//description: string,
+    '',//key: string,
+    0,//kmSinceLastEntry: 0,
+    0,//kmSinceLastFuelFill?: 0,
+    0,//consumption?: number,
+    lastbk.value.rowNr ,//rowNr?: number,
 ))
 
 // set d1 to d6 according to the digits in laastbk.km
 const km = reactive({
-  digits: new Array(6).fill(0).map((_, i) => +lastbk.value.km[i] ),
-  value: () => +km.digits.join(''),
-  kmDriven: () => km.value() - +lastbk.value.km,
+  digits: new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km,i ) ),
+  value: () =>   +km.digits.join(''),
+  kmDriven: () =>  km.value() - +lastbk.value.km,
   range: 950,
   toFar: () => km.value() - +lastbk.value.km > km.range,
   withinRange: () => km.value() - +lastbk.value.km < km.range, 
@@ -118,11 +119,36 @@ const km = reactive({
     }
     // if the km.value is smaller than the last booking, reset to the last booking
     if (km.value() < +lastbk.value.km) {
-      km.digits = new Array(6).fill(0).map((_, i) => +lastbk.value.km[i] )
+      km.digits = new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km,i ) )
     }
   }
 })
 
+/**
+ * Returns the i-th digit of a given number.
+ * @param num - The number to extract the digit from.
+ * @param index - The zero-based index of the digit (from left to right).
+ * @returns The digit at the given index, or null if invalid.
+ */
+function getDigitAt(num: number, index: number): number  {
+    // Validate inputs
+    if (!Number.isFinite(num) || !Number.isInteger(index) || index < 0) {
+        console.error("Invalid input: num must be finite, index must be a non-negative integer.");
+        return 0;
+    }
+
+    // Work with absolute value to ignore sign
+    const numStr = Math.abs(num).toString();
+
+    // Check index bounds
+    if (index >= numStr.length) {
+        console.warn("Index out of range.");
+        return 0;
+    }
+
+    // Convert the character at index to a number
+    return Number(numStr.charAt(index));
+}
 
 
 const kmSinceLastEntry = +thisbk.value.km - +lastbk.value.km
@@ -140,24 +166,21 @@ const validation = (bk: HauptbuchBooking, bt: typeof bookingtype) :{ok: boolean;
 
 // on submit, create a new booking
 const onSubmit = async () => {
+  logd("fahrtenbucheintrag.vue onSubmit: ")
   // thisbk.value.account = sh.value
   thisbk.value.date = thisbk.value.date.toString() 
-  thisbk.value.km = thisbk.value.km.toString()
-  thisbk.value.kmSinceLastEntry = km.kmDriven().toString()
-  thisbk.value.liters = "90"
-  thisbk.value.consumption = (100*+thisbk.value.liters/km.kmDriven()).toString()
-  thisbk.value.fuelPriceInEuro = thisbk.value.fuelPriceInEuro.toString()
-  thisbk.value.amount = thisbk.value.amount.toString()
-  thisbk.value.description = thisbk.value.description.toString()
-  thisbk.value.key = thisbk.value.key.toString()
-  thisbk.value.rowNr = "42"
+  //thisbk.value.km = thisbk.value.km.toString()
+  thisbk.value.kmSinceLastEntry = km.kmDriven()//.toString()
+  thisbk.value.liters = "0 l"
+  thisbk.value.consumption = (100*+thisbk.value.liters/km.kmDriven())//.toString()
   console.log('onSubmit', thisbk.value)
   const vres = validation(thisbk.value, bookingtype)
   if (vres.ok) {
     await hauptbuch.createBooking(thisbk.value)
   } else {
-    popupData.value = vres.result
-    popup.value = true
+    popupData.value.text = vres.result
+    popupData.value.show = true
+    //showPopup.value = true
   }
 }
 

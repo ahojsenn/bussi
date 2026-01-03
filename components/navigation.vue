@@ -1,6 +1,6 @@
 <template lang="pug">
 nav.menu
-  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox")
+  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox" value="home")
   label(for="burger-menu-toggle01")
     .burger-menu
       div 

@@ -5,6 +5,10 @@ div.background
       slot 
 </template>
 
+<script setup>
+import navigation from '~/components/Navigation.vue'
+</script>
+
 <style>
 @font-face {
  font-family: 'supermarker'; /* Gewünschter Name */

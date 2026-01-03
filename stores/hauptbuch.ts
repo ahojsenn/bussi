@@ -27,7 +27,8 @@ const GdataUrl = URL + GMAGIC + GSN_sheet
 export const useHauptbuchStore = defineStore('hauptbuch', {
   state: () => ({
     bookings: [] as Array<HauptbuchBooking>,
-    _url: URL + GEDIT
+    _url: URL + GEDIT,
+    access_token: ""
   }),
   actions: {
     async loadBussiData(period?: string) {
@@ -74,6 +75,9 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       ))
       // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
+    async createBooking(b: HauptbuchBooking) {
+      logd("hauptbuch.createBooking: ", b)
+    }
   },
   getters: {
     url: (state) => state._url
