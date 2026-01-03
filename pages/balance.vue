@@ -183,8 +183,8 @@ const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
     if (min.saldo >= 0.01) break // all salden are equal, but tolerate a one cent difference
     if (max.saldo <= 0.01) break // all salden are equal, but tolerate a one cent difference
     const amount = Math.min(-min.saldo, max.saldo)
-    const from = bs.findAccount(max.name, "Ausgleichskonto")
-    const to = bs.findAccount(min.name, "Ausgleichskonto")
+    const to = bs.findAccount(max.name, "Ausgleichskonto")
+    const from = bs.findAccount(min.name, "Ausgleichskonto")
     const text = "Ausgleichsbuchung Salden "
       +"<br>"+perioden.currentPeriod+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
       +"<br>Amount: "+euroString(amount)
