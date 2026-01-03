@@ -1,6 +1,6 @@
 <template lang="pug">
 nav.menu
-  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox" value="home")
+  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox" value="/")
   label(for="burger-menu-toggle01")
     .burger-menu
       div 
@@ -25,7 +25,7 @@ nav.menu
         Nuxt hauptbuch      
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt fahrtenbucheintrag  
+        Nuxt Fahrtenbucheintrag  
 </template>
 
 <script setup lang="ts">
