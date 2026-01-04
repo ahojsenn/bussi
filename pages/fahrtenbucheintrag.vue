@@ -1,6 +1,5 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
-  button(@click="showPopup.show = true") Open Popup
   Popup(v-model="popupData" )
   div(v-if="hauptbuch.access_token!=''") access_token: {{hauptbuch.access_token}}
   
