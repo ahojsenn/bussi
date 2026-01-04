@@ -19,13 +19,13 @@ nav.menu
         Nuxt stakeholder
     span.burgerMenuText
       NuxtLink(to="/accounts") 
-       Nuxt accounts
+        Nuxt accounts
     span.burgerMenuText
       NuxtLink(to="/hauptbuch") 
-        Nuxt hauptbuch      
+        Nuxt hauptbuch
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt Fahrtenbucheintrag  
+        Nuxt Fahrtenbucheintrag
 </template>
 
 <script setup lang="ts">

@@ -2,7 +2,7 @@
 div.popup-overlay(v-if="visible" @click.self="close")
   div.popup
     button.close-btn(@click="close") ×
-    h2 something is missing 
+    h2 hi there! 
     p {{modelValue.text}} ...
     button(@click="close") Close
 </template>

@@ -137,7 +137,7 @@ const allKm = () => bs.findAccount('Bussi', 'Kilometer').saldoY(perioden.current
 const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + liter(b), 0))
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
-const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
+const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters || 0)+"").replace('l', '').trim().replace(',', '.')) : 0
 
 
 

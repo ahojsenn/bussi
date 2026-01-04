@@ -5,8 +5,9 @@
     "dev": "nvm use 25 ; nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "check-deploy": "curl -s https://api.github.com/repos/docjoe/bussi/actions/workflows/gh-pages.yml/runs | jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}'",
     "postinstall": "nuxt prepare",
-    "deploy": "touch .output/.nojekyll && touch .output/public/.nojekyll && gh-pages --dotfiles -d .output/public"
+    "deploy": "nuxt generate && touch .output/.nojekyll && touch .output/public/.nojekyll && gh-pages --dotfiles -d .output/public"
   },
   "devDependencies": {
     "@nuxt/image": "^0.7.1",

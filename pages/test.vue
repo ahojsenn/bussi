@@ -1,10 +1,11 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
- 
+  Popup(v-model="popupData" )
+
   div Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}  
-  button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
-  button( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
-  button( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
+  button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'") Fahrt
+  button( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'") Tanken
+  button( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'") Sonstiges
   br
   input(type="datetime-local" name="date" :value="thisbk.date" required)
   br
@@ -26,32 +27,35 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
         button.km(style="background-color: rgba(0,0,0,0.1)" disabled) 
       span(v-for="i in [3,4,5]")
         button.km(type="button" @click="km.dec(i); km.change(i)") -
-
+  
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
-  span(v-if="bookingtype!='Fahrt'")
-    input.euro( :class="{'red': thisbk.amount==0}" v-model="thisbk.amount" type="number" name="amount" placeholder="amount" required)
-    span € &nbsp;&nbsp;&nbsp;
-  
-  span.liter(v-if="bookingtype==='Tanken'")
-    input.liter( :class="{'red': thisbk.liters==0}" type="number" name="liters" placeholder="liters" v-model="thisbk.liters" required) 
-    span Liter &nbsp;&nbsp;&nbsp;
-    span.liter vollgetankt?
-    input(type="checkbox" name="vollgetankt?" checked placeholder="" required) 
-    div Verbrauch {{thisbk.consumption}} l/100km
-    div € pro Liter: {{thisbk.fuelPriceInEuro}}
-    div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
-  
-  span.liter(v-if="bookingtype==='Sonstiges'")
-    div Was war es?
-      input(type="text" name="description" placeholder="description" v-model="thisbk.description" required)
+  div(v-if="bookingtype==='Tanken'")
+    div Liter getankt
+      input(type="text" name="liters" placeholder="liters" :value="thisbk.liters" required)
+    div Verbrauch
+      input(type="text" name="consumption" value=9.5 placeholder="consumption")
+    div € pro Liter
+      input(type="text" name="fuelPriceInEuro" placeholder="fuelPriceInEuro" required)
+    div km gefahren seit letzter Tankfüllung
+      input(type="text" name="kmSinceLastFuelFill" placeholder="kmSinceLastFuelFill")
 
-  div gefahren: {{km.kmDriven()}}km
+  div(v-if="bookingtype!='Fahrt'")
+    div € Betrag
+      input(type="text" name="amount" placeholder="amount" required)
+    div Schlüssel
+      input(type="text" name="key" placeholder="key" )
 
-  span(v-if="!validation(thisbk, bookingtype).ok" class="error" v-html="validation(thisbk, bookingtype).result") 
-  button( :class="{'green': validation(thisbk, bookingtype).ok }"  style="width=100%" type="submit") ins Fahrtenbuch eintragen
+  div gefahren: {{km.kmDriven()}}km 
+
+  div is this ok? {{validation(thisbk, bookingtype).ok }}
+  div bookingtype: {{validation(thisbk, bookingtype).result }}
+
+  button( :class="{'green': validation(thisbk, bookingtype).ok}"  style="width=100%" type="submit") ins Fahrtenbuch eintragen
+
 </template>
+
 
 <script setup lang="ts">
 import { useHauptbuchStore } from '../stores/hauptbuch'
@@ -152,49 +156,27 @@ function getDigitAt(num: number, index: number): number  {
 }
 
 
-
-const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: string} => {
+const kmSinceLastEntry = +thisbk.value.km - +lastbk.value.km
+const validation = (bk: HauptbuchBooking, bt: typeof bookingtype) :{ok: boolean;result: string}=> {
+  logd("validation called with ", bk, bt)
   let retString = ''
 
-  if (bt === 'Fahrt') {
-    retString += bk.date === '' ? 'Date not set<br>' : ''
-    retString += bk.kmSinceLastEntry < 1 ? 'Bitte km angeben<br>': ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''
-    retString += km.withinRange() ? '' : 'km not within range<br>'
-    retString += bk.amount != 0 ? 'Bei Eintrag "Fahrt" bitte keinen Betrag angeben<br>': ''
-    retString += bk.liters != 0 ? 'Bei Eintrag "Fahrt" bitte keine Liter angeben<br>': ''
+  if (bt.value === 'Fahrt') {
+    retString += bk.date === '' ? 'Date not set' : ''
+    retString += bk.kmSinceLastEntry < 1 ? 'Bitte km angeben': ''
+    retString += bk.account === '' ? 'Konto not selected' : ''
+    retString += km.withinRange() ? '' : 'km not within range'
   } 
   
-  if (bt === 'Tanken') {
-    retString += km.withinRange() ? '' : 'km not within range<br>'
-    retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>': ''
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''
-    calculateConsumption(bk)
-    retString += bk.consumption > 13 ? 'Verbrauch zu hoch, bitte prüfen<br>': ''
-    retString += bk.consumption < 7.8? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
-    retString += bk.fuelPriceInEuro > 2.5 ?  'Kraftstoffpreis zu hoch, bitte prüfen<br>': ''
-    retString += bk.fuelPriceInEuro < 1.2 ?  'Kraftstoffpreis zu niedrig, bitte prüfen<br>': ''
-  } 
-  
-  if (bt === 'Sonstiges') {
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''  
-    retString += bk.description === '' ? 'Bitte Beschreibung angeben<br>': ''
-  }
-  
-  return (retString !== '') ? {ok: false, result: retString} : {ok: true, result: 'ok'}
-}
-
-// calcculate verbrauch and € pro liter and set it in thisbk
-const calculateConsumption = (b: HauptbuchBooking) => {
   if (bookingtype.value === 'Tanken') {
-    b.consumption = 100*+(b.liters)/b.kmSinceLastEntry
-    b.fuelPriceInEuro = +(b.amount) / +(b.liters)
-  } else {
-    b.consumption = 0
-    b.fuelPriceInEuro = 0
+    return  {ok: km.withinRange(), result: 'km not within range'}
+  } 
+  
+  if (bookingtype.value === 'Sonstiges') {
+    return  {ok: false, result: ' not yet implemented'}
   }
+
+  return (retString === '') ? {ok: false, result: retString} : {ok: true, result: 'ok'}
 }
 
 // on submit, create a new booking
@@ -216,7 +198,7 @@ const onSubmit = async () => {
   thisbk.value.description = "gefahren: "+ thisbk.value.kmSinceLastEntry +" km,..."
 
   console.log('onSubmit', thisbk.value)
-  const vres = validation(thisbk.value, bookingtype.value)
+  const vres = validation(thisbk.value, bookingtype)
   if (vres.ok) {
     await hauptbuch.createBooking(thisbk.value)
     
@@ -317,20 +299,11 @@ input,select,button{
   border-radius: 4px;
   padding: 2px;
   margin: 2px;
-  height: 2em;
+  height: 2.3em;
   font-size: 1.5em;
   border-radius: 3px;
   white-space: nowrap;
   vertical-align: middle;
-}
-.km:hover {
-  background-color: #90bee3;
-  color: white;
-} 
-.km:disabled, span.km:disabled {
-  background-color: rgba(0,0,0,0.9);
-  color: white;
-  border: 1px solid rgba(256, 256, 256, 0.7);
 }
 /* vertical align the plus and minus in the middle */
 .km, span.km {
@@ -340,15 +313,10 @@ input,select,button{
   font-weight: bold;
   font-size: 2.5em;
   width: 15%;
-  height: 1.2em;
+  height: 2em;
   border-radius: 8px;
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgb(12, 11, 11);
 }
-
-.euro,.liter {
-  width: 20%;
-}
-
 
 input.km, select.km, button.km{  
   color: white;

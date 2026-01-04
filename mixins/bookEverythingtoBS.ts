@@ -5,7 +5,7 @@ import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
 import { euroToNumber } from './euroToNumber';
 
-const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +b.liters.replace('l', '').trim().replace(',', '.') : 0
+const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +(((b.liters || 0) + "").replace('l', '').trim().replace(',', '.')) : 0
 
 
 export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
@@ -79,7 +79,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: 
             const to = bs.findAccount("System", "Errors1")
             const text = "falscher Verbrauchswert:   " + verbrauch + "  Liter/100km<br>"
               + booking.account + " Verbrauch " + booking.description + " "
-              + "<br> amount:" + booking.amount + " " + euroToNumber(booking.amount)
+              + "<br> amount:" + booking.amount
               + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
               + "<br> splits:" + splits
               + "<br> booking:" + JSON.stringify(booking)
@@ -134,7 +134,8 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: 
           book(bk, from, to)
 
           // set this to true only, if there is no amount in booking.amount
-          if (booking.amount == "0 €") bookingWasUsed = true
+          // otherwise this has also to be booked in "Tanken" or "Sonstiges"
+          if (booking.amount == 0) bookingWasUsed = true
 
           //logd("bookEverythingtoBS.Kilometer: ", splits, bk, from, to)
           /* Kilometer verbucht, nun Benzinpreis verbuchen */
@@ -263,6 +264,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: 
           + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
           + "<br> splits:" + splits
           + "<br> booking:" + JSON.stringify(booking)
+          + "<br> bookingType:" + bookingHelpers.bookingType(booking)
           + "<br> Error:" + bookingError
         const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
         book(bk, from, to)

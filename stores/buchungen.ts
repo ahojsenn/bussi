@@ -32,7 +32,7 @@ const parseHauptbuch = (data: Array<any>, url: string): Array<HauptbuchBooking> 
     description: value["Was"],
     key: value["V-Schlüssel"],
     rowNr: value.rowNr,
-  }
+  } as HauptbuchBooking
 })
 
 

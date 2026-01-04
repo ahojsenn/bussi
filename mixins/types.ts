@@ -6,11 +6,11 @@ export class HauptbuchBooking {
   account: string
   km: number
   kmSinceLastEntry: number
-  kmSinceLastFuelFill?: number
-  liters: string
-  consumption?: number
-  fuelPriceInEuro: string
-  amount: string
+  kmSinceLastFuelFill: number
+  liters: number
+  consumption: number
+  fuelPriceInEuro: number
+  amount: number
   description: string
   key: string
   rowNr: number
@@ -19,14 +19,14 @@ export class HauptbuchBooking {
     date: string,
     account: string,
     km: number,
-    liters: string,
-    fuelPriceInEuro: string,
-    amount: string,
+    kmSinceLastEntry: number,
+    kmSinceLastFuelFill: number,
+    liters: number | undefined,
+    consumption: number | undefined,
+    fuelPriceInEuro: number | undefined,
+    amount: number | undefined,
     description: string,
     key: string,
-    kmSinceLastEntry: 0,
-    kmSinceLastFuelFill?: 0,
-    consumption?: number,
     rowNr?: number,
   ) {
     this.nr = nr
@@ -35,13 +35,31 @@ export class HauptbuchBooking {
     this.km = km
     this.kmSinceLastEntry = kmSinceLastEntry
     this.kmSinceLastFuelFill = kmSinceLastFuelFill
-    this.liters = liters
-    this.consumption = consumption
-    this.fuelPriceInEuro = fuelPriceInEuro
-    this.amount = amount === '' ? "0" : amount // set to = if string is empty
+    this.liters = liters || 0
+    this.consumption = consumption || 0
+    this.fuelPriceInEuro = fuelPriceInEuro || 0
+    this.amount = amount || 0
     this.description = description
     this.key = key
     this.rowNr = rowNr || 0
+  }
+
+  // Datum	Wer	km (Endstand)	km	km seit letzter Tankung	Liter getankt	Verbrauch/l	Benzinpreis	Betrag	Was	V-Schlüssel
+  toSpreadsheetRow(): (string | number | undefined)[] {
+    return [
+      // Datum mit YYYY-MM-DD hh:mmformat
+      this.date,
+      this.account,
+      this.km,
+      this.kmSinceLastEntry,
+      this.kmSinceLastFuelFill,
+      this.liters,
+      this.consumption,
+      this.fuelPriceInEuro,
+      this.amount,
+      this.description,
+      this.key,
+    ]
   }
 }
 
