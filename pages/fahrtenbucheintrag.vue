@@ -1,5 +1,5 @@
 <template lang="pug">
-form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" ) 
+form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
   button(@click="showPopup.show = true") Open Popup
   Popup(v-model="popupData" )
   div(v-if="hauptbuch.access_token!=''") access_token: {{hauptbuch.access_token}}
@@ -10,26 +10,25 @@ form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" )
   button( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'") Sonstiges
   br
   input(type="datetime-local" name="date" :value="thisbk.date" required)
-  div 
-    select(v-model="thisbk.account")
-      option(disabled value="") Bitte Konto auswählen
-      option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
-    div  
+  select(v-model="thisbk.account")
+    option(disabled value="") Bitte Konto auswählen
+    option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
 
-    table
-      table-row
-        table-cell.km(v-for="i in [0,1,2,3,4,5]")
-          button.km(disabled) {{km.digits[i]}}
-      table-row
-        table-cell.km(v-for="i in [0,1,2]") 
-          button.km(style="background-color: rgba(0,0,0,0.1)" disabled)
-        table-cell(v-for="i in [3,4,5]")
-          button.km(type="button" @click="km.inc(i); km.change(i)") +
-      table-row
-        table-cell.km(v-for="i in [0,1,2]") 
-          button.km(style="background-color: rgba(0,0,0,0.1)" disabled) 
-        table-cell(v-for="i in [3,4,5]")
-          button.km(type="button" @click="km.dec(i); km.change(i)") -
+  div(style="width: 100%")
+    div
+      span(v-for="i in [0,1,2,3,4,5]")
+        button.km(disabled) {{km.digits[i]}}
+    div
+      span(v-for="i in [0,1,2]") 
+        button.km(style="background-color: rgba(0,0,0,0.1)" disabled)
+      span(v-for="i in [3,4,5]")
+        button.km(type="button" @click="km.inc(i); km.change(i)") +
+    div
+      span(v-for="i in [0,1,2]") 
+        button.km(style="background-color: rgba(0,0,0,0.1)" disabled) 
+      span(v-for="i in [3,4,5]")
+        button.km(type="button" @click="km.dec(i); km.change(i)") -
+
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
@@ -48,12 +47,11 @@ form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" )
     div Schlüssel
       input(type="text" name="key" placeholder="key" )
   div gefahren: {{km.kmDriven()}}km
-  div 
-    button(type="submit") ins Fahrtenbuch eintragen
+  
+  button(style="width=100%" type="submit") ins Fahrtenbuch eintragen
 </template>
 
 <script setup lang="ts">
-import { acceptHMRUpdate } from 'pinia'
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { useStakeholderStore } from '../stores/stakeholder' 
 import { HauptbuchBooking } from './../mixins/types'
@@ -201,11 +199,10 @@ body {
   touch-action: manipulation !important;
 }
 form {
-  font-size: 2em;
+  font-size: 1em;
 }
 div {
   border-radius: 3px;
-    font-size: 1.5em;
 }
 button {
   background-color: rgba(256, 256, 256, 0.7);
@@ -226,12 +223,6 @@ button:hover {
 }
 
 .hilight {
-  /* choose a color for the hilighted button accvording  to the color scheme of the background-image 
-  90bee3
-  ef9892
-  c6df99
-  fcfa9d
-  **/
   background-color: #ef9892;
   color: white;
   border: #90bee3;
@@ -242,50 +233,39 @@ input,select,button{
   border-radius: 4px;
   padding: 2px;
   margin: 2px;
-  height: 2em;
-  font-size: 1.3em;
+  height: 1.3em;
+  font-size: 1.5em;
   border-radius: 3px;
   white-space: nowrap;
+  vertical-align: middle;
 }
 /* vertical align the plus and minus in the middle */
-.km {
+.km, span.km {
   text-align: center;
-  vertical-align: middle;
   align-items: center;
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
+  font-size: 2.5em;
   width: 15%;
+  height: 2em;
   border-radius: 8px;
+  background-color: rgb(12, 11, 11);
 }
 
-input.km, select.km, button.km{
-  padding-bottom: 0.2em;
-  background-color: rgb(12, 11, 11);
+input.km, select.km, button.km{  
   color: white;
 }
-button.invisible {
-  padding-bottom: 0.2em;
-  background-color: rgba(12, 11, 11, 0.1);
-  color: red;
-}
-
-.display-table {
-  width:50px;
-  display: table;   
-}
-.tacho {
-  background-color: rgba(0, 0, 0, 0.798);
-  border-radius: 3px;
-}
-.display-table > div { 
-  display: table-row; 
-}
-.display-table > div > div { 
-  display: table-cell;
-  padding: 0px;
-  /* align center */
+.block {
+  display: block;
+  border: none;
+  background-color: none;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
   text-align: center;
 }
+
+
 .error {
   background-color: #d51c0f;
   color: rgb(234, 198, 198);
