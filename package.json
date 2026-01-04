@@ -29,6 +29,8 @@
     "gh-pages": "^5.0.0",
     "jest": "^29.4.3",
     "jest-environment-jsdom": "^29.4.3",
+    "module": "^2.0.0",
+    "nuxt-vue3-google-signin": "^0.0.13",
     "papaparse": "^5.3.2",
     "pinia": "^2.0.30",
     "pug-lint": "^2.6.0",

@@ -1,8 +1,10 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
-  Popup(v-model="popupData" )
+  div(v-if="hauptbuch.access_token==''")
+    googleOauth(@update_access_token="set_access_token($event)")
   div(v-if="hauptbuch.access_token!=''") access_token: {{hauptbuch.access_token}}
-  
+  Popup(v-model="popupData" )
+
   div Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}  
   button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'") Fahrt
   button( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'") Tanken

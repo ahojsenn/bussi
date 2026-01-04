@@ -63,4 +63,7 @@ export default {
   font-size: 20px;
   cursor: pointer;
 }
+button {
+  font-size: 1.3em;
+}
 </style>
