@@ -89,7 +89,7 @@ const thisbk = ref(new HauptbuchBooking(
     0,//kmSinceLastEntry: 0,
     0,//kmSinceLastFuelFill?: 0,
     0,//consumption?: number,
-    lastbk.value.rowNr ,//rowNr?: number,
+    (hauptbuch.bookings.length + 1),//rowNr?: number,
 ))
 
 // set d1 to d6 according to the digits in laastbk.km

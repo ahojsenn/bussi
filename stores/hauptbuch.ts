@@ -4,6 +4,7 @@ import Papa from 'papaparse'
 import logd from '../mixins/logDebug'
 import { URL } from '../mixins/url'
 import * as bookingHelpers from '../mixins/bookingHelpers'
+import Hauptbuch from '~/pages/hauptbuch.vue';
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {
@@ -76,7 +77,65 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
     async createBooking(b: HauptbuchBooking) {
+      // I would like to append a row to the google spreadsheet
       logd("hauptbuch.createBooking: ", b)
+      const ACCESS_TOKEN = this.$state.access_token
+      const SPREADSHEET_ID = this.$state._url
+      const RANGE = 'Fahrtenbuch!A' + b.rowNr // Starting cell for append
+      // Data to append (each inner array is a row)
+      const values = [
+        ['John Doe', 'john@example.com', '2026-01-04']
+      ];
+
+      // send a post request to the bussiserver with the data
+      try {
+        logd("Hauptbuch.createBooking: trying to send POST request to bussi_server...")
+        const url = "/adddata"
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values })
+        })
+      } catch (error) {
+        console.error('Error sending request to bussiserver', error);
+      }
+
+
+      // this will probably not be secure... I will remoe it later
+      logd("hauptbuch.createBooking: checking for accesss_token and spreadsheet_id")
+      if (!ACCESS_TOKEN || !SPREADSHEET_ID) {
+        console.error('Missing ACCESS_TOKEN or SPREADSHEET_ID.')
+        logd("hauptbuch.ts.createBooking: ", this.$state)
+        return
+      }
+      logd("hauptbuch.ts.createBooking: try...",)
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=USER_ENTERED`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Google Sheets API error: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Row appended successfully:', JSON.stringify(data, null, 2));
+      } catch (error) {
+        console.error('Error appending row:', error);
+      }
+
     }
   },
   getters: {
