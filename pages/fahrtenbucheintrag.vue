@@ -15,18 +15,21 @@ form.disable-dbl-tap-zoom(@submit.prevent="onSubmit" )
       option(disabled value="") Bitte Konto auswählen
       option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
     div  
-    div(class="display-table")
-      div.tacho(:class="km.toFar() ? 'error' : ''")
-        div(v-for="i in [0,1,2,3,4,5]")
-          input.km(type="text" v-model="km.digits[i]" readonly )
-      div
-        div(v-for="i in [0,1,2]") 
-        div(v-for="i in [3,4,5]")
+
+    table
+      table-row
+        table-cell.km(v-for="i in [0,1,2,3,4,5]")
+          button.km(disabled) {{km.digits[i]}}
+      table-row
+        table-cell.km(v-for="i in [0,1,2]") 
+          button.km(style="background-color: rgba(0,0,0,0.1)" disabled)
+        table-cell(v-for="i in [3,4,5]")
           button.km(type="button" @click="km.inc(i); km.change(i)") +
-      div
-        div(v-for="i in [0,1,2]")
-        div(v-for="i in [3,4,5]")
-          button.km(type="button" @click="km.dec(i)") -
+      table-row
+        table-cell.km(v-for="i in [0,1,2]") 
+          button.km(style="background-color: rgba(0,0,0,0.1)" disabled) 
+        table-cell(v-for="i in [3,4,5]")
+          button.km(type="button" @click="km.dec(i); km.change(i)") -
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
@@ -201,7 +204,8 @@ form {
   font-size: 2em;
 }
 div {
-  border-radius: 5px;
+  border-radius: 3px;
+    font-size: 1.5em;
 }
 button {
   background-color: rgba(256, 256, 256, 0.7);
@@ -233,43 +237,41 @@ button:hover {
   border: #90bee3;
 }
 
-input,select{
+input,select,button{
   border: 1px solid rgba(256, 256, 256, 0.7);
   border-radius: 4px;
   padding: 2px;
   margin: 2px;
-  font-size: 1.5em;
-  width: 100%;
+  height: 2em;
+  font-size: 1.3em;
   border-radius: 3px;
   white-space: nowrap;
 }
 /* vertical align the plus and minus in the middle */
-button.km {
-  padding: 0px;
-  align-items: center;
-  padding-bottom: 0.2em;
-  width: 1.5em;
-  height: 2em;
-  border-width: 2px;
-  border-color: rgb(142, 158, 158);
-  font-size: 1.5em;
-}
-
-input.km, select.km{
-  width: 1.5em;
-  vertical-align: middle;
+.km {
   text-align: center;
+  vertical-align: middle;
+  align-items: center;
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
-  font-size: 1.5em;
+  width: 15%;
+  border-radius: 8px;
+}
+
+input.km, select.km, button.km{
+  padding-bottom: 0.2em;
   background-color: rgb(12, 11, 11);
-  border: 1px solid rgba(92, 87, 87, 0.7);
   color: white;
-  border-radius: 3px;
+}
+button.invisible {
+  padding-bottom: 0.2em;
+  background-color: rgba(12, 11, 11, 0.1);
+  color: red;
 }
 
 .display-table {
-    display: table;   
+  width:50px;
+  display: table;   
 }
 .tacho {
   background-color: rgba(0, 0, 0, 0.798);
@@ -295,6 +297,5 @@ input.km, select.km{
 .disable-dbl-tap-zoom {
   touch-action: manipulation;
 }
-
 
 </style>
