@@ -1,1 +1,0 @@
-import{p as t,a,j as s,b as o,_ as r}from"./w5IFM3qW.js";const n=t("/img/bussi.png");function c(p,e){return o(),a("div",null,[...e[0]||(e[0]=[s("h1",null,[s("a",{href:"https://miro.com/app/board/uXjVPyPTepA=/"},"Bussi")],-1),s("img",{src:n,alt:"Bussi"},null,-1)])])}const i={},u=r(i,[["render",c],["__scopeId","data-v-d1b4afce"]]);export{u as default};
