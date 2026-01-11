@@ -2,7 +2,7 @@
 ![das Bild von der Idee](./public/bussi.png
 "Bussi Teilung")
 
-many changes in January 2026...
+many changes in January 2026...  
 
 ## Setup
 
