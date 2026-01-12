@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   typescript: {
     strict: true
   },
-  compatibilityDate: '2025-12-14',
+  compatibilityDate: '2026-01-12',
 
   generate: {
     routes: ['/index', '/stakeholder', '/accounts', '/hauptbuch', '/balance', '/test', '/fahrtenbucheintrag']
@@ -19,12 +19,12 @@ export default defineNuxtConfig({
     // '@nuxt/image-edge',
   ],
   app: {
-    baseURL: '/bussi/'
+    baseURL: '/'
   },
 
   runtimeConfig: {
     public: {
-      baseURL: '/bussi/',
+      baseURL: '/',
     },
   },
 
