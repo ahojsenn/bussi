@@ -8,7 +8,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-01-12',
 
   generate: {
-    routes: ['/index', '/stakeholder', '/accounts', '/hauptbuch', '/balance', '/test', '/fahrtenbucheintrag']
+    routes: ['/index', '/stakeholder',
+      '/accounts', '/hauptbuch',
+      '/balance', '/test',
+      '/fahrtenbucheintrag', '/fbeloeschen']
   },
 
   ssr: false,

@@ -95,7 +95,23 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       } catch (error) {
         console.error('Error sending request to bussiserver', error);
       }
-
+    },
+    async deleteBooking(b: HauptbuchBooking) {
+      logd("hauptbuch.deleteBooking: ", b)
+      const values = b.toSpreadsheetRow()
+      try {
+        logd("Hauptbuch.createBooking: trying to send POST request to bussi_server...")
+        const url = "/deletebooking"
+        const response = await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values })
+        })
+      } catch (error) {
+        console.error('Error sending request to bussiserver', error);
+      }
     }
   },
   getters: {

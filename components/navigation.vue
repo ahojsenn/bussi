@@ -12,6 +12,12 @@ nav.menu
       NuxtLink(to="/") 
         Nuxt home
     span.burgerMenuText
+      NuxtLink(to="/fahrtenbucheintrag") 
+        Nuxt Fahrtenbucheintrag
+    span.burgerMenuText
+      NuxtLink(to="/fbeloeschen") 
+        Nuxt fbeloeschen
+    span.burgerMenuText
       NuxtLink(to="/balance") 
         Nuxt balance
     span.burgerMenuText
@@ -23,9 +29,6 @@ nav.menu
     span.burgerMenuText
       NuxtLink(to="/hauptbuch") 
         Nuxt hauptbuch
-    span.burgerMenuText
-      NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt Fahrtenbucheintrag
 </template>
 
 <script setup lang="ts">

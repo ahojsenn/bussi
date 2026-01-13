@@ -1,5 +1,8 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
+  div(v-if="!hostname().includes('konfi')") we are not in production on {{hostname()}}
+    div last submitted: 
+      span(v-html="lastSubmitted")
  
   div Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}  
   button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
@@ -31,21 +34,20 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
   span(v-if="bookingtype!='Fahrt'")
-    input.euro( :class="{'red': thisbk.amount==0}" v-model="thisbk.amount" type="number" name="amount" placeholder="amount" required)
+    input.euro( :class="{'red': thisbk.amount<=0}" v-model="thisbk.amount" type="number" name="amount" placeholder="amount" required)
     span € &nbsp;&nbsp;&nbsp;
   
   span.liter(v-if="bookingtype==='Tanken'")
-    input.liter( :class="{'red': thisbk.liters==0}" type="number" name="liters" placeholder="liters" v-model="thisbk.liters" required) 
+    input.liter( :class="{'red': thisbk.liters<=0}" type="number" name="liters" placeholder="liters" v-model="thisbk.liters" required value=1)
     span Liter &nbsp;&nbsp;&nbsp;
     span.liter vollgetankt?
-    input(type="checkbox" name="vollgetankt?" checked placeholder="" required) 
+    input(type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt") 
     div Verbrauch {{thisbk.consumption}} l/100km
     div € pro Liter: {{thisbk.fuelPriceInEuro}}
     div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
   
-  span.liter(v-if="bookingtype==='Sonstiges'")
-    div Was war es?
-      input(type="text" name="description" placeholder="description" v-model="thisbk.description" required)
+  span.description(v-if="bookingtype==='Sonstiges'")
+    input.description( :class="{'red': thisbk.description==''}" type="text" name="description" placeholder="description" v-model="thisbk.description" required)
 
   div gefahren: {{km.kmDriven()}}km
 
@@ -69,6 +71,15 @@ await hauptbuch.loadBussiData()
 let popupData = ref({show: false, text: 'you should not see this!'})
 //const closePopup = () => showPopup.value = false
 
+// save hostname from url in hostname
+const hostname = () => {
+      // Access the hostname from the browser's window.location object
+      if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+        return window.location.hostname;
+      }
+    }
+let lastSubmitted = ref("nothing yet")
+const vollgetankt = ref(true)
 
 const bookingtype = ref('Fahrt')
 const today = new Date().toISOString().slice(0, 16)
@@ -172,7 +183,7 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
     calculateConsumption(bk)
     retString += bk.consumption > 13 ? 'Verbrauch zu hoch, bitte prüfen<br>': ''
-    retString += bk.consumption < 7.8? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
+    retString += vollgetankt.value && (bk.consumption < 7.8) ? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
     retString += bk.fuelPriceInEuro > 2.5 ?  'Kraftstoffpreis zu hoch, bitte prüfen<br>': ''
     retString += bk.fuelPriceInEuro < 1.2 ?  'Kraftstoffpreis zu niedrig, bitte prüfen<br>': ''
   } 
@@ -200,7 +211,7 @@ const calculateConsumption = (b: HauptbuchBooking) => {
 // on submit, create a new booking
 const onSubmit = async () => {
   logd("fahrtenbucheintrag.vue onSubmit: ")
-
+  lastSubmitted.value = ""
   // saetze die werte in thisbk
 
   // thisbk.value.account = sh.value
@@ -213,11 +224,19 @@ const onSubmit = async () => {
   }
   thisbk.value.consumption = 
     (bookingtype.value === 'Tanken') ? (100*+(thisbk.value.liters)/km.kmDriven()) : 0
-  thisbk.value.description = "gefahren: "+ thisbk.value.kmSinceLastEntry +" km,..."
+
+  // make a nice description
+  const od = thisbk.value.description
+  thisbk.value.description = "FBE: " + bookingtype.value
+  thisbk.value.description += (thisbk.value.kmSinceLastEntry>0) ? " :: km: " + thisbk.value.kmSinceLastEntry : ''
+  thisbk.value.description += (od != "") ? " :: " + od : ""
+  // if "nicht vollgetankt"
+  thisbk.value.description += (!vollgetankt.value) ? " :: nicht vollgetankt" : ""
 
   console.log('onSubmit', thisbk.value)
   const vres = validation(thisbk.value, bookingtype.value)
   if (vres.ok) {
+    lastSubmitted.value += thisbk.value.description+"<br>"+JSON.stringify(thisbk.value)
     await hauptbuch.createBooking(thisbk.value)
     
     // read tha hauptbuch data again to get the last booking updated
@@ -301,7 +320,7 @@ button:hover {
 }
 
 .red {
-  background-color: #d51c0f;
+  background-color: rgba(255,100,100,1);
   color: white;
   border: #90bee3;
 } 
@@ -345,10 +364,12 @@ input,select,button{
   background-color: rgba(0,0,0,0.8);
 }
 
-.euro,.liter {
+.euro,.liter,.description {
   width: 20%;
 }
-
+.description {
+  width: 40%;
+}
 
 input.km, select.km, button.km{  
   color: white;
