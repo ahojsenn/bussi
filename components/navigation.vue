@@ -1,6 +1,6 @@
 <template lang="pug">
 nav.menu
-  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox" value="/")
+  input#burger-menu-toggle01.burger-menu-toggle(type="checkbox" value="/" v-model="djcheckbox")
   label(for="burger-menu-toggle01")
     .burger-menu
       div 
@@ -13,7 +13,7 @@ nav.menu
         Nuxt home
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt Fahrtenbucheintrag
+        Nuxt( @click="uncheck('djcheckbox')") Fahrtenbucheintrag
     span.burgerMenuText
       NuxtLink(to="/fbeloeschen") 
         Nuxt fbeloeschen
@@ -31,8 +31,11 @@ nav.menu
         Nuxt hauptbuch
 </template>
 
-<script setup lang="ts">
 
+
+<script setup lang="ts">
+  const djcheckbox = ref(false)
+  const uncheck = () => djcheckbox.value = !djcheckbox.value
 </script>
 
 

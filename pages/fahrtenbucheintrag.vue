@@ -16,35 +16,57 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
 
   div(style="width: 100%")
-    div
+    div.kmdisplay
       span(v-for="i in [0,1,2,3,4,5]")
         button.km(disabled) {{km.digits[i]}}
+    span aktueller Kilometerstand
     div
       span(v-for="i in [0,1,2]") 
-        button.km(style="background-color: rgba(0,0,0,0.1)" disabled)
+        button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled)
       span(v-for="i in [3,4,5]")
-        button.km(type="button" @click="km.inc(i); km.change(i)") +
+        button.changekm(type="button" @click="km.inc(i); km.change(i)") +
     div
       span(v-for="i in [0,1,2]") 
-        button.km(style="background-color: rgba(0,0,0,0.1)" disabled) 
+        button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled) 
       span(v-for="i in [3,4,5]")
-        button.km(type="button" @click="km.dec(i); km.change(i)") -
+        button.changekm(type="button" @click="km.dec(i); km.change(i)") -
 
+  br
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
-  span(v-if="bookingtype!='Fahrt'")
-    input.euro( :class="{'red': thisbk.amount<=0}" v-model="thisbk.amount" type="number" name="amount" placeholder="amount" required)
+  span(v-if="bookingtype!='Fahrt'" )
+    input.euro( :class="{'red': thisbk.amount<=0}" 
+      v-model="amount" 
+      type="number" 
+      pattern="[0-9]*"
+      inputmode="decimal"
+      placeholder="euro" 
+      required)
     span € &nbsp;&nbsp;&nbsp;
-  
-  span.liter(v-if="bookingtype==='Tanken'")
-    input.liter( :class="{'red': thisbk.liters<=0}" type="number" name="liters" placeholder="liters" v-model="thisbk.liters" required value=1)
+ 
+  span.liter(v-if="bookingtype==='Tanken'" )
+    input.liter( :class="{'red': thisbk.liters<=0}" 
+      type="number" 
+      pattern="[0-9]*"
+      inputmode="decimal"
+      name="liters" 
+      v-model="liters" 
+      required 
+      onfocus="this.select()") 
     span Liter &nbsp;&nbsp;&nbsp;
+    input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" ) 
     span.liter vollgetankt?
-    input(type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt") 
-    div Verbrauch {{thisbk.consumption}} l/100km
-    div € pro Liter: {{thisbk.fuelPriceInEuro}}
+
+    div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
+
+    div aktueller Verbrauch: {{calculateConsumption(thisbk)}} l/100km
+    div Durchschnittsverbrauch {{ averageConsumption() }} l/100km
+    div km seit letztem mal vollgetankt: {{thisbk.kmSinceLastFuelFill}}
     div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
+    div km lezte Tankung: {{kmAtLastFuelfill()}}
+    div wieviel passt gerade in ten Tank: {{estimatedFuelCapacity(thisbk)}} 
+  
   
   span.description(v-if="bookingtype==='Sonstiges'")
     input.description( :class="{'red': thisbk.description==''}" type="text" name="description" placeholder="description" v-model="thisbk.description" required)
@@ -56,6 +78,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 </template>
 
 <script setup lang="ts">
+import { bookingIsTanken } from '~/mixins/bookingHelpers'
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { useStakeholderStore } from '../stores/stakeholder' 
 import { HauptbuchBooking } from './../mixins/types'
@@ -64,7 +87,7 @@ const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
-
+const bookings = hauptbuch.bookings
 
 /* catch the event 'closePopup' from th e popup component */
 //let showPopup = ref(false)
@@ -80,17 +103,24 @@ const hostname = () => {
     }
 let lastSubmitted = ref("nothing yet")
 const vollgetankt = ref(true)
+const liters = ref (0)
+const amount = ref (0)
 
-const bookingtype = ref('Fahrt')
+const bookingtype = ref('Tanken')
 const today = new Date().toISOString().slice(0, 16)
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length-1])
+const allLiters = hauptbuch.bookings.reduce((acc,cv) => acc += cv.liters,0)
+
+const averageConsumption = () => Math.round (10000* allLiters / allKM) /100
+const kmAtLastFuelfill = () :number => bookings.filter(b => bookingIsTanken(b)).reverse()[0].km || 0
+
 const thisbk = ref(new HauptbuchBooking(
     (hauptbuch.bookings.length + 1).toString(),//nr: string,
     today,//date: string,
     '',//account: string,
     lastbk.value.km,//km: number,
     0,//kmSinceLastEntry: 0,
-    0,//kmSinceLastFuelFill?: 0,
+    lastbk.value.km - kmAtLastFuelfill(),//kmSinceLastFuelFill?: 0,
     0,//liters: string,
     (hauptbuch.bookings.length + 1),//rowNr?: number,
     0,//fuelPriceInEuro: string,
@@ -99,8 +129,9 @@ const thisbk = ref(new HauptbuchBooking(
     '',//key: string,
     (hauptbuch.bookings.length + 1),//rowNr?: number,
 ))
+const allKM = thisbk.value.km - hauptbuch.bookings[0].km
 
-// set d1 to d6 according to the digits in laastbk.km
+// set d1 to d6 according to the digits in lastbk.km
 const km = reactive({
   digits: new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km,i ) ),
   value: () =>   +km.digits.join(''),
@@ -113,7 +144,7 @@ const km = reactive({
   change: (i: number) => {
     // add style change to the 
     thisbk.value.kmSinceLastEntry = km.kmDriven()
-    thisbk.value.kmSinceLastFuelFill = (bookingtype.value!='Tanken') ? +lastbk.value.kmSinceLastFuelFill + km.kmDriven() : 0
+    thisbk.value.kmSinceLastFuelFill = lastbk.value.kmSinceLastFuelFill + km.kmDriven() 
     thisbk.value.km = km.value()
     console.log('change', i, thisbk.value, lastbk.value)
   },
@@ -170,20 +201,29 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
   if (bt === 'Fahrt') {
     retString += bk.date === '' ? 'Date not set<br>' : ''
     retString += bk.kmSinceLastEntry < 1 ? 'Bitte km angeben<br>': ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''
+    retString += bk.account === '' ? 'bitte Konto angeben<br>' : ''
     retString += km.withinRange() ? '' : 'km not within range<br>'
     retString += bk.amount != 0 ? 'Bei Eintrag "Fahrt" bitte keinen Betrag angeben<br>': ''
     retString += bk.liters != 0 ? 'Bei Eintrag "Fahrt" bitte keine Liter angeben<br>': ''
   } 
   
   if (bt === 'Tanken') {
+    thisbk.value.amount = amount.value 
+    thisbk.value.fuelPriceInEuro = amount.value / liters.value
+    thisbk.value.liters = liters.value
     retString += km.withinRange() ? '' : 'km not within range<br>'
     retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>': ''
     retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
+
     calculateConsumption(bk)
-    retString += bk.consumption > 13 ? 'Verbrauch zu hoch, bitte prüfen<br>': ''
-    retString += vollgetankt.value && (bk.consumption < 7.8) ? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
+    if (vollgetankt.value) {
+      retString += bk.consumption > 1.2*averageConsumption() ? 'Verbrauch zu hoch, bitte prüfen<br>': ''
+      retString += vollgetankt.value && (bk.consumption < 0.8*averageConsumption()) ? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
+    } else {
+      // retString += "wirklich vollgetankt?"
+    }
+
     retString += bk.fuelPriceInEuro > 2.5 ?  'Kraftstoffpreis zu hoch, bitte prüfen<br>': ''
     retString += bk.fuelPriceInEuro < 1.2 ?  'Kraftstoffpreis zu niedrig, bitte prüfen<br>': ''
   } 
@@ -199,14 +239,10 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
 
 // calcculate verbrauch and € pro liter and set it in thisbk
 const calculateConsumption = (b: HauptbuchBooking) => {
-  if (bookingtype.value === 'Tanken') {
-    b.consumption = 100*+(b.liters)/b.kmSinceLastEntry
-    b.fuelPriceInEuro = +(b.amount) / +(b.liters)
-  } else {
-    b.consumption = 0
-    b.fuelPriceInEuro = 0
-  }
+  b.consumption =  Math.round (10000 * liters.value / b.kmSinceLastFuelFill) / 100
+  return b.consumption
 }
+const estimatedFuelCapacity = (b: HauptbuchBooking) :number => thisbk.value.kmSinceLastFuelFill / averageConsumption()
 
 // on submit, create a new booking
 const onSubmit = async () => {
@@ -221,9 +257,17 @@ const onSubmit = async () => {
   thisbk.value.liters = 0
   if (bookingtype.value === 'Tanken') {
     thisbk.value.liters = +( (document.querySelector('input[name="liters"]') as HTMLInputElement).value || 0)
+    // if not vollgetankt calculate kmSincelastFuelFill with Durchschnittsverbrauch...
+  
+
+
+
+
+ 
   }
   thisbk.value.consumption = 
-    (bookingtype.value === 'Tanken') ? (100*+(thisbk.value.liters)/km.kmDriven()) : 0
+    (bookingtype.value === 'Tanken') ? 
+    (100*+(thisbk.value.liters)/(km.kmDriven()+thisbk.value.kmSinceLastFuelFill)) : 0
 
   // make a nice description
   const od = thisbk.value.description
@@ -232,6 +276,7 @@ const onSubmit = async () => {
   thisbk.value.description += (od != "") ? " :: " + od : ""
   // if "nicht vollgetankt"
   thisbk.value.description += (!vollgetankt.value) ? " :: nicht vollgetankt" : ""
+
 
   console.log('onSubmit', thisbk.value)
   const vres = validation(thisbk.value, bookingtype.value)
@@ -249,7 +294,7 @@ const onSubmit = async () => {
       '',//account: string,
       lastbk.value.km,//km: number,
       0,//kmSinceLastEntry: 0,
-      0,//kmSinceLastFuelFill?: 0,
+      (vollgetankt.value) ? 0 : lastbk.value.kmSinceLastFuelFill - liters.value/(100*averageConsumption()),//kmSinceLastFuelFill?: 0,
       0,//liters: string,
       0,//consumption
       0,//fuelPriceInEuro: string,
@@ -289,24 +334,15 @@ body {
   padding: 0;
   touch-action: manipulation !important;
 }
-form {
-  font-size: 1em;
-}
+
 div {
   border-radius: 3px;
 }
 button {
   background-color: rgba(256, 256, 256, 0.7);
   border: 0px solid black;
-  border-radius: 8px;
   color: grey;
-  padding: 5px 12px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  margin: 4px 2px;
   cursor: pointer;
-  font-size: 1.4em;
 }
 button:hover {
   background-color: #90bee3;
@@ -314,7 +350,7 @@ button:hover {
 }
 
 .hilight {
-  background-color: #ef9892;
+  background-color: #90bee3;
   color: white;
   border: #90bee3;
 }
@@ -332,24 +368,30 @@ button:hover {
 }
 
 input,select,button{
-  border: 1px solid rgba(256, 256, 256, 0.7);
   border-radius: 4px;
   padding: 2px;
   margin: 2px;
-  height: 2em;
   font-size: 1.5em;
   border-radius: 3px;
   white-space: nowrap;
   vertical-align: middle;
 }
+input[type="checkbox"] {
+  width: 1.5em;
+  height: 1.5em;
+}
 .km:hover {
   background-color: #90bee3;
   color: white;
 } 
+.kmdisplay {
+  background-color: rgba(0,0,0,1);
+  color: lightgray;
+  border-radius: 0.4em;
+}
 .km:disabled, span.km:disabled {
-  background-color: rgba(0,0,0,0.9);
-  color: white;
-  border: 1px solid rgba(256, 256, 256, 0.7);
+  background-color: rgba(10,10,10,0.9);
+ 
 }
 /* vertical align the plus and minus in the middle */
 .km, span.km {
@@ -361,11 +403,32 @@ input,select,button{
   width: 15%;
   height: 1.2em;
   border-radius: 8px;
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgba(0,0,0,0.7);
+  background: linear-gradient(to top,hsla(20, 0%, 0%, 0.9), 
+        hsla(0, 0%, 50%, 0.5) 50%,  hsla(20, 0%, 0%, 0.9));
 }
 
-.euro,.liter,.description {
-  width: 20%;
+
+.changekm {
+  text-align: center;
+  align-items: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 2.5em;
+  width: 15%;
+  height: 1.2em;
+  border-radius: 8px;
+  color: white;
+  background-color: rgba(0,0,0,0.7); 
+}
+
+
+::placeholder {
+  color: white;
+}
+
+.euro,.liter,.description{
+  width: 18%;
 }
 .description {
   width: 40%;

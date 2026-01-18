@@ -2,6 +2,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   experimental: { appManifest: false },
+  vite: {
+    server: {
+      allowedHosts: true,
+    },
+  },
   typescript: {
     strict: true
   },
@@ -23,6 +28,9 @@ export default defineNuxtConfig({
   ],
   app: {
     baseURL: '/'
+  },
+  devServer: {
+    port: 42000
   },
 
   runtimeConfig: {
