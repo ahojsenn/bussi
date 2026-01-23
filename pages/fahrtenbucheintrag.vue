@@ -1,31 +1,38 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
-  div(v-if="!hostname().includes('konfi')") we are not in production on {{hostname()}}
+  button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug?
+  h1 Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}
+  div(v-if="!hostname().includes('konfi') && DEBUG") 
+    div not on production on 
+    div {{hostname()}}
     div last submitted: 
       span(v-html="lastSubmitted")
  
-  div Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}  
-  button( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
-  button( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
-  button( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
+  button.vorgang( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
+  button.vorgang( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
+  button.vorgang( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
   br
   input(type="datetime-local" name="date" :value="thisbk.date" required)
-  br
+  
   select( :class="{'red': thisbk.account==''}" v-model="thisbk.account")
     option(disabled value="") Bitte Konto auswählen
     option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
+  br
+  br
 
   div(style="width: 100%")
-    div.kmdisplay
-      span(v-for="i in [0,1,2,3,4,5]")
-        button.km(disabled) {{km.digits[i]}}
-    span aktueller Kilometerstand
-    div
+    div &nbsp; &nbsp; &nbsp; &nbsp;
       span(v-for="i in [0,1,2]") 
         button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled)
       span(v-for="i in [3,4,5]")
         button.changekm(type="button" @click="km.inc(i); km.change(i)") +
-    div
+
+    div.kmdisplay 
+      span km
+      span(v-for="i in [0,1,2,3,4,5]")
+        button.km(disabled) {{km.digits[i]}}
+
+    div &nbsp; &nbsp; &nbsp; &nbsp;
       span(v-for="i in [0,1,2]") 
         button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled) 
       span(v-for="i in [3,4,5]")
@@ -58,8 +65,8 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" ) 
     span.liter vollgetankt?
 
+  div(v-if="DEBUG")
     div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
-
     div aktueller Verbrauch: {{calculateConsumption(thisbk)}} l/100km
     div Durchschnittsverbrauch {{ averageConsumption() }} l/100km
     div km seit letztem mal vollgetankt: {{thisbk.kmSinceLastFuelFill}}
@@ -88,6 +95,7 @@ await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
 const bookings = hauptbuch.bookings
+const DEBUG=ref(false)
 
 /* catch the event 'closePopup' from th e popup component */
 //let showPopup = ref(false)
@@ -219,13 +227,14 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
     calculateConsumption(bk)
     if (vollgetankt.value) {
       retString += bk.consumption > 1.2*averageConsumption() ? 'Verbrauch zu hoch, bitte prüfen<br>': ''
-      retString += vollgetankt.value && (bk.consumption < 0.8*averageConsumption()) ? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
-    } else {
+          } else {
       // retString += "wirklich vollgetankt?"
     }
 
-    retString += bk.fuelPriceInEuro > 2.5 ?  'Kraftstoffpreis zu hoch, bitte prüfen<br>': ''
+    retString += bk.consumption < 0.8*averageConsumption() ? 'Verbrauch zu niedrig, bitte prüfen<br>': ''
     retString += bk.fuelPriceInEuro < 1.2 ?  'Kraftstoffpreis zu niedrig, bitte prüfen<br>': ''
+    retString += bk.fuelPriceInEuro > 2.5 ?  'Kraftstoffpreis zu hoch, bitte prüfen<br>': ''
+  
   } 
   
   if (bt === 'Sonstiges') {
@@ -343,16 +352,39 @@ button {
   border: 0px solid black;
   color: grey;
   cursor: pointer;
+  
+  &:active {
+    transform: scale(13px)
+  }
+
+  
+  &::after, &::before {
+    border-radius: 13px
+  }
+
 }
-button:hover {
+
+.debugbutton {
+  position: absolute;
+  left: 0pt;
+  color: rgba(200,0,0,0.7)
+}
+
+button:hover button:click {
   background-color: #90bee3;
   color: white;
 }
 
+.vorgang {
+  width: 30%;
+  font-size: 1.5em;
+  color: rgba(50,50,50,0.7)
+}
+
 .hilight {
-  background-color: #90bee3;
+  background-color: #205a8a;
   color: white;
-  border: #90bee3;
+  border: #293743;
 }
 
 .red {
@@ -400,7 +432,7 @@ input[type="checkbox"] {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
   font-size: 2.5em;
-  width: 15%;
+  width: 14%;
   height: 1.2em;
   border-radius: 8px;
   background-color: rgba(0,0,0,0.7);
@@ -415,7 +447,7 @@ input[type="checkbox"] {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
   font-size: 2.5em;
-  width: 15%;
+  width: 14%;
   height: 1.2em;
   border-radius: 8px;
   color: white;

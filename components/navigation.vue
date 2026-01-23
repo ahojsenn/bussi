@@ -8,15 +8,16 @@ nav.menu
       span      
       span 
   .responsive-menu
+    br
     span.burgerMenuText
       NuxtLink(to="/") 
         Nuxt home
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt( @click="uncheck('djcheckbox')") Fahrtenbucheintrag
+        Nuxt( @click="uncheck('djcheckbox')") *eintragen*
     span.burgerMenuText
       NuxtLink(to="/fbeloeschen") 
-        Nuxt fbeloeschen
+        Nuxt löschen
     span.burgerMenuText
       NuxtLink(to="/balance") 
         Nuxt balance
@@ -120,14 +121,14 @@ a.active {
 .responsive-menu a,
 .responsive-menu a:visited,
 .responsive-menu a:link {
-  font-size: 12px;
+  font-size: 2em;
   border: solid 1px #3c3c3b;
   background: #3c3c3b;
   color: #76ede9;
   padding: 4px 12px 2px 12px;
   margin: 1px 0px 0px 1px;
   text-decoration: none;
-  line-height: 26px;
+  line-height: 1.7em;
   border-radius: 6px;
 }
 
