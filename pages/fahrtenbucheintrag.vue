@@ -53,7 +53,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
         pattern="[0-9]+([.][0-9]+)?"
         inputmode="decimal"
         value="€"
-        placeholder="€" 
+        placeholder="Euro" 
         v-model="amount" 
         spellcheck="false"
         onfocus="this.select()"
@@ -138,7 +138,7 @@ const hostname = () => {
 let lastSubmitted = ref("nothing yet")
 const vollgetankt = ref(true)
 const liters = ref ("Litres")
-const amount = ref ("€")
+const amount = ref ("Euro")
 
 const bookingtype = ref('Fahrt')
 const today = new Date().toISOString().slice(0, 16)
@@ -556,8 +556,8 @@ input.km, select.km, button.km{
 
 @font-face {
     font-family: 'Digital-7';
-    src: url('/digital-7.woff2') format('woff2'),
-         url('/digital-7.woff') format('woff');
+    src: url('/digital-7.woff') format('woff'),
+         url('/digital-7.ttf') format('ttf');
 }
 /* Das eigentliche Input-Feld */
 
@@ -569,7 +569,7 @@ input.km, select.km, button.km{
   /* Schrift-Styling */
   color: #1a1a1a;
   font-family: 'Digital-7', sans-serif;
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: bold;
   text-align: right;
  
