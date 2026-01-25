@@ -20,22 +20,22 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   br
   br
 
-  div(style="width: 100%")
-    div &nbsp; &nbsp; &nbsp; &nbsp;
-      span(v-for="i in [0,1,2]") 
+  div
+    div.changebar
+      div.kmbox(v-for="i in [0,1,2,3]") 
         button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled)
-      span(v-for="i in [3,4,5]")
+      div.kmbox(v-for="i in [3,4,5]")
         button.changekm(type="button" @click="km.inc(i); km.change(i)") +
 
     div.kmdisplay 
-      span km
-      span(v-for="i in [0,1,2,3,4,5]")
+      div.kmbox(style="overflow: auto")  {{km.kmDriven()}} km
+      div.kmbox(v-for="i in [0,1,2,3,4,5]")
         button.km(disabled) {{km.digits[i]}}
 
-    div &nbsp; &nbsp; &nbsp; &nbsp;
-      span(v-for="i in [0,1,2]") 
+    div.changebar
+      div.kmbox(v-for="i in [0,1,2,3]") 
         button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled) 
-      span(v-for="i in [3,4,5]")
+      div.kmbox(v-for="i in [3,4,5]")
         button.changekm(type="button" @click="km.dec(i); km.change(i)") -
 
   br
@@ -79,7 +79,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
       span.pump-label Litres
       br
       span.pump-label vollgetankt?
-        input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" ) 
+      input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" style="color: red") 
 
 
   
@@ -97,8 +97,6 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   
   span.description(v-if="bookingtype==='Sonstiges'")
     input.description( :class="{'red': thisbk.description==''}" type="text" name="description" placeholder="description" v-model="thisbk.description" required)
-
-  div gefahren: {{km.kmDriven()}}km
 
   span(v-if="!validation(thisbk, bookingtype).ok" class="error" v-html="validation(thisbk, bookingtype).result") 
   button#id_abschicken( 
@@ -367,14 +365,7 @@ const onSubmit = async () => {
 
 <style scoped>
 /* disable scrolling on mobile */
-html,
-body {
-  overflow: hidden;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  touch-action: manipulation !important;
-}
+
 
 div {
   border-radius: 3px;
@@ -460,6 +451,13 @@ input[type="checkbox"] {
   background-color: rgba(0,0,0,1);
   color: lightgray;
   border-radius: 0.4em;
+  display: flex;
+  width: 100%;
+}
+.kmbox {
+  width: 14%;
+  overflow: auto;
+  text-align: right;
 }
 .km:disabled, span.km:disabled {
   background-color: rgba(10,10,10,0.9);
@@ -472,7 +470,7 @@ input[type="checkbox"] {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
   font-size: 2.5em;
-  width: 14%;
+  width: 1.1em;
   height: 1.2em;
   border-radius: 8px;
   background-color: rgba(0,0,0,0.7);
@@ -480,15 +478,19 @@ input[type="checkbox"] {
         hsla(0, 0%, 50%, 0.5) 50%,  hsla(20, 0%, 0%, 0.9));
 }
 
-
+.changebar {
+  border-radius: 0.4em;
+  display: flex;
+  width: 100%; 
+}
 .changekm {
   text-align: center;
   align-items: center;
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
-  font-size: 2.5em;
-  width: 14%;
+  font-size: 2.3em;
   height: 1.2em;
+  width: 1.2em;
   border-radius: 8px;
   color: white;
   background-color: rgba(0,0,0,0.7); 

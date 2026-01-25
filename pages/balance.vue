@@ -231,4 +231,4 @@ th {
   border-radius: 6px;
   border-width: 0px;}
 
-</style>../mixins/bookWithBuchungsLogik
+</style>
