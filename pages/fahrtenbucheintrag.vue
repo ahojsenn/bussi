@@ -1,7 +1,7 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
   button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug?
-  h1 Fahrtenbucheintrag # {{ hauptbuch.bookings.length }}
+  h2 Fahrtenbucheintrag \#{{ hauptbuch.bookings.length }} 
   div(v-if="!hostname().includes('konfi') && DEBUG") 
     div not on production on 
     div {{hostname()}}
@@ -12,11 +12,11 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   button.vorgang( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
   button.vorgang( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
   br
-  input(type="datetime-local" name="date" :value="thisbk.date" required)
-  
-  select( :class="{'red': thisbk.account==''}" v-model="thisbk.account")
-    option(disabled value="") Bitte Konto auswählen
-    option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
+  span
+    input(type="datetime-local" name="date" :value="thisbk.date" required)
+    select( :class="{'red': thisbk.account==''}" v-model="thisbk.account")
+      option(disabled value="") Konto auswählen
+      option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
   br
   br
 
@@ -42,28 +42,48 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
-  span(v-if="bookingtype!='Fahrt'" )
-    input.euro( :class="{'red': thisbk.amount<=0}" 
-      v-model="amount" 
-      type="number" 
-      pattern="[0-9]*"
-      inputmode="decimal"
-      placeholder="euro" 
-      required)
-    span € &nbsp;&nbsp;&nbsp;
- 
-  span.liter(v-if="bookingtype==='Tanken'" )
-    input.liter( :class="{'red': thisbk.liters<=0}" 
-      type="number" 
-      pattern="[0-9]*"
-      inputmode="decimal"
-      name="liters" 
-      v-model="liters" 
-      required 
-      onfocus="this.select()") 
-    span Liter &nbsp;&nbsp;&nbsp;
-    input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" ) 
-    span.liter vollgetankt?
+
+  div.pump(v-if="bookingtype!='Fahrt'" ) 
+    div.pump-display-container
+      input(
+          :class="{'gas-pump-input-red': !isPositiveNumber(amount),\
+              'gas-pump-input' : true\
+          }" 
+        type="number" 
+        pattern="[0-9]+([.][0-9]+)?"
+        inputmode="decimal"
+        value="€"
+        placeholder="€" 
+        v-model="amount" 
+        spellcheck="false"
+        onfocus="this.select()"
+          )
+      br
+      span.pump-label Price to pay €
+    
+    div.pump-display-container(v-if="bookingtype==='Tanken'" )
+      input(
+        :class="{'gas-pump-input-red': !isPositiveNumber(liters),\
+              'gas-pump-input' : true\
+        }" 
+        type="number" 
+        pattern="[0-9]+([.][0-9]+)?"
+        inputmode="decimal"
+        value="0.00"
+        placeholder="Litres" 
+        v-model="liters" 
+        spellcheck="false"
+        onfocus="this.select()"
+        )
+      br
+      span.pump-label Litres
+      br
+      span.pump-label vollgetankt?
+        input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" ) 
+
+
+  
+
 
   div(v-if="DEBUG")
     div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
@@ -81,8 +101,14 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   div gefahren: {{km.kmDriven()}}km
 
   span(v-if="!validation(thisbk, bookingtype).ok" class="error" v-html="validation(thisbk, bookingtype).result") 
-  button( :class="{'green': validation(thisbk, bookingtype).ok }"  style="width=100%" type="submit") ins Fahrtenbuch eintragen
+  button#id_abschicken( 
+    :class="{'green': validation(thisbk, bookingtype).ok }"  
+    style="width=100%" 
+    type="submit") ins Fahrtenbuch eintragen
 </template>
+
+
+
 
 <script setup lang="ts">
 import { bookingIsTanken } from '~/mixins/bookingHelpers'
@@ -111,14 +137,20 @@ const hostname = () => {
     }
 let lastSubmitted = ref("nothing yet")
 const vollgetankt = ref(true)
-const liters = ref (0)
-const amount = ref (0)
+const liters = ref ("0.00litres")
+const amount = ref ("0.00€")
 
-const bookingtype = ref('Fahrt')
+const bookingtype = ref('Tanken')
 const today = new Date().toISOString().slice(0, 16)
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length-1])
 const allLiters = hauptbuch.bookings.reduce((acc,cv) => acc += cv.liters,0)
-
+const isParsableNumber = (v: any): boolean => !isNaN(parseFloat(v)) && isFinite(v);
+const isPositiveNumber = (v: any): boolean => isParsableNumber(v) && v > 0
+const scrollIntoView= (id :string) => {
+      const inputField = document.getElementById(id);
+      alert('hi')
+      if (inputField)  inputField.scrollIntoView({ behavior: 'smooth' });
+  }
 const averageConsumption = () => Math.round (10000* allLiters / allKM) /100
 const kmAtLastFuelfill = () :number => bookings.filter(b => bookingIsTanken(b)).reverse()[0].km || 0
 
@@ -216,9 +248,9 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
   } 
   
   if (bt === 'Tanken') {
-    thisbk.value.amount = amount.value 
-    thisbk.value.fuelPriceInEuro = amount.value / liters.value
-    thisbk.value.liters = liters.value
+    thisbk.value.amount = +amount.value 
+    thisbk.value.fuelPriceInEuro = +amount.value / +liters.value
+    thisbk.value.liters = +liters.value
     retString += km.withinRange() ? '' : 'km not within range<br>'
     retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>': ''
     retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
@@ -248,7 +280,7 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
 
 // calcculate verbrauch and € pro liter and set it in thisbk
 const calculateConsumption = (b: HauptbuchBooking) => {
-  b.consumption =  Math.round (10000 * liters.value / b.kmSinceLastFuelFill) / 100
+  b.consumption =  Math.round (10000 * +liters.value / b.kmSinceLastFuelFill) / 100
   return b.consumption
 }
 const estimatedFuelCapacity = (b: HauptbuchBooking) :number => thisbk.value.kmSinceLastFuelFill / averageConsumption()
@@ -303,7 +335,7 @@ const onSubmit = async () => {
       '',//account: string,
       lastbk.value.km,//km: number,
       0,//kmSinceLastEntry: 0,
-      (vollgetankt.value) ? 0 : lastbk.value.kmSinceLastFuelFill - liters.value/(100*averageConsumption()),//kmSinceLastFuelFill?: 0,
+      (vollgetankt.value) ? 0 : lastbk.value.kmSinceLastFuelFill - +liters.value/(100*averageConsumption()),//kmSinceLastFuelFill?: 0,
       0,//liters: string,
       0,//consumption
       0,//fuelPriceInEuro: string,
@@ -376,8 +408,9 @@ button:hover button:click {
 }
 
 .vorgang {
-  width: 30%;
-  font-size: 1.5em;
+  width: 32%;
+  height: 2.0em;
+  font-size: 1.3em;
   color: rgba(50,50,50,0.7)
 }
 
@@ -393,6 +426,13 @@ button:hover button:click {
   border: #90bee3;
 } 
 
+.tanken {
+  background-color: yellow;
+  color: grey;
+  align: left;
+
+}
+
 .green {
   background-color: #1fd51c;
   color: white;
@@ -403,7 +443,7 @@ input,select,button{
   border-radius: 4px;
   padding: 2px;
   margin: 2px;
-  font-size: 1.5em;
+  font-size: 1.3em;
   border-radius: 3px;
   white-space: nowrap;
   vertical-align: middle;
@@ -491,5 +531,77 @@ input.km, select.km, button.km{
 .disable-dbl-tap-zoom {
   touch-action: manipulation;
 }
+
+
+
+/* Container für den Zapfsäulen-Look */
+
+.pump {
+  display: flex;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  width: 100%;
+  height: 120px;
+}
+.pump-display-container {
+  background-color: #0a0a0a;
+  padding: 5px 5px 5px 5px;
+  border-radius: 8px;
+  width: 45%;
+  display: inline-block;
+  text-align: right;
+  height: 100px;
+}
+
+
+@font-face {
+    font-family: 'Digital-7';
+    src: url('/digital-7.woff2') format('woff2'),
+         url('/digital-7.woff') format('woff');
+}
+/* Das eigentliche Input-Feld */
+
+
+.gas-pump-input {
+  /* Hintergrund mit Farbverlauf für den LCD-Effekt */
+  background: linear-gradient(to bottom, #e2eb42 0%, #cbd61a 100%);
+ 
+  /* Schrift-Styling */
+  color: #1a1a1a;
+  font-family: 'Digital-7', sans-serif;
+  font-size: 1.6rem;
+  font-weight: bold;
+  text-align: right;
+ 
+  /* Form und Rahmen */
+  border: 4px solid #333;
+  border-radius: 4px;
+  padding: 5px 15px;
+  width: 55%;
+  outline: none;
+ 
+  /* Innerer Schatten für Tiefe */
+  box-shadow: inset 0px 4px 10px rgba(0, 0, 0, 0.3);
+ 
+  /* Leucht-Effekt der Segmente simulieren */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+.gas-pump-input-red {
+  background: linear-gradient(to bottom, #fe7070 0%, #f1503a 100%);
+}
+
+/* Label-Styling (z.B. "PRICE TO PAY") */
+.pump-label {
+  color: #d1d1d1;
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  /* margin-top: -25px; /* Positioniert das Label über das Input */
+  pointer-events: none;
+  text-align: right; /* Text rechts ausrichten */
+  margin-right: 10px;
+}
+
+
 
 </style>
