@@ -137,10 +137,10 @@ const hostname = () => {
     }
 let lastSubmitted = ref("nothing yet")
 const vollgetankt = ref(true)
-const liters = ref ("0.00litres")
-const amount = ref ("0.00€")
+const liters = ref ("Litres")
+const amount = ref ("€")
 
-const bookingtype = ref('Tanken')
+const bookingtype = ref('Fahrt')
 const today = new Date().toISOString().slice(0, 16)
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length-1])
 const allLiters = hauptbuch.bookings.reduce((acc,cv) => acc += cv.liters,0)
