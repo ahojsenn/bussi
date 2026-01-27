@@ -8,10 +8,13 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div last submitted: 
       span(v-html="lastSubmitted")
  
+  // Auswahl des Vorgangs
   button.vorgang( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
   button.vorgang( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
   button.vorgang( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
   br
+
+  // Datum und Konto
   span
     input(type="datetime-local" name="date" :value="thisbk.date" required)
     select( :class="{'red': thisbk.account==''}" v-model="thisbk.account")
@@ -19,7 +22,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
       option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
   br
   br
-
+  // Kilometer Eingabe
   div
     div.changebar
       div.kmbox(v-for="i in [0,1,2,3]") 
@@ -38,11 +41,12 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
       div.kmbox(v-for="i in [3,4,5]")
         button.changekm(type="button" @click="km.dec(i); km.change(i)") -
 
+  // Warnung wenn km zu weit
   br
   div
     span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
 
-
+  // Eingabe für Tanken oder Sonstiges
   div.pump(v-if="bookingtype!='Fahrt'" ) 
     div.pump-display-container
       input(
@@ -79,12 +83,19 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
       span.pump-label Litres
       br
       span.pump-label vollgetankt?
-      input( type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" style="color: red") 
+      input(  type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" style="color: red") 
 
-
-  
-
-
+    // Beschreibung Eingabe für Sonstiges mit zwei zeilenumbrüchen
+    span.pump-display-container(v-if="bookingtype==='Sonstiges'")
+      textarea.description( 
+        :class="{'red': thisbk.description==''}" 
+        type="text" 
+        name="description" 
+        placeholder="description, what did you purchase?" 
+        v-model="thisbk.description" required
+        )
+ 
+  // debug info
   div(v-if="DEBUG")
     div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
     div aktueller Verbrauch: {{calculateConsumption(thisbk)}} l/100km
@@ -94,11 +105,10 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div km lezte Tankung: {{kmAtLastFuelfill()}}
     div wieviel passt gerade in ten Tank: {{estimatedFuelCapacity(thisbk)}} 
   
-  
-  span.description(v-if="bookingtype==='Sonstiges'")
-    input.description( :class="{'red': thisbk.description==''}" type="text" name="description" placeholder="description" v-model="thisbk.description" required)
-
+  div ddd {{amount}}
+  // Anzeige der Validierungsfehler
   span(v-if="!validation(thisbk, bookingtype).ok" class="error" v-html="validation(thisbk, bookingtype).result") 
+  // Submit Button
   button#id_abschicken( 
     :class="{'green': validation(thisbk, bookingtype).ok }"  
     style="width=100%" 
@@ -120,11 +130,6 @@ const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
 const bookings = hauptbuch.bookings
 const DEBUG=ref(false)
-
-/* catch the event 'closePopup' from th e popup component */
-//let showPopup = ref(false)
-let popupData = ref({show: false, text: 'you should not see this!'})
-//const closePopup = () => showPopup.value = false
 
 // save hostname from url in hostname
 const hostname = () => {
@@ -246,9 +251,9 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
   } 
   
   if (bt === 'Tanken') {
-    thisbk.value.amount = +amount.value 
-    thisbk.value.fuelPriceInEuro = +amount.value / +liters.value
-    thisbk.value.liters = +liters.value
+    bk.amount = +amount.value 
+    bk.fuelPriceInEuro = +amount.value / +liters.value
+    bk.liters = +liters.value
     retString += km.withinRange() ? '' : 'km not within range<br>'
     retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>': ''
     retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
@@ -268,8 +273,9 @@ const validation = (bk: HauptbuchBooking, bt: string) :{ok: boolean;result: stri
   } 
   
   if (bt === 'Sonstiges') {
+    bk.amount = +amount.value 
     retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>': ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''  
+    retString += bk.account === '' ? 'Konto nicht ausgewählt<br>' : ''  
     retString += bk.description === '' ? 'Bitte Beschreibung angeben<br>': ''
   }
   
@@ -298,9 +304,6 @@ const onSubmit = async () => {
     thisbk.value.liters = +( (document.querySelector('input[name="liters"]') as HTMLInputElement).value || 0)
     // if not vollgetankt calculate kmSincelastFuelFill with Durchschnittsverbrauch...
   
-
-
-
 
  
   }
@@ -344,28 +347,17 @@ const onSubmit = async () => {
     )
     // reset km digits with lastbk.value.km
     km.digits = new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km,i ) )
-
-    // make a nice popup with all the info in the object thisbk.value
-
-
-    popupData.value.text  = JSON.stringify(thisbk.value) + ' Eintrag erfolgreich erstellt.'
-    // popupData.value.show = true
-    //showPopup.value = true
-  
-
-  } else {
-    popupData.value.text = vres.result
-    popupData.value.show = true
-    //showPopup.value = true
   }
 }
-
-
 </script>
 
-<style scoped>
-/* disable scrolling on mobile */
 
+
+<style scoped>
+/* disable scrolling on mobile with css */
+body {
+  overflow: hidden;
+}
 
 div {
   border-radius: 3px;
@@ -501,11 +493,17 @@ input[type="checkbox"] {
   color: white;
 }
 
-.euro,.liter,.description{
-  width: 18%;
-}
-.description {
-  width: 40%;
+/* Beschreibung Eingabefeld mit drei zeilen und zeilenumbrüchen */
+span
+.description{
+  width: 90%;
+  height: 3.6em;
+  font-size: 1.3em;
+  border-radius: 4px;
+  padding: 5px;
+  margin: 4%;
+  border: 1px solid grey;
+  resize: vertical; /* allow vertical resizing */
 }
 
 input.km, select.km, button.km{  

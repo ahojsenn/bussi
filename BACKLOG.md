@@ -1,5 +1,7 @@
 # my Backlog
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
+- Bilanz checken
+- Gäbe es eine DSL für die Bilanzierung?
 
 
 
