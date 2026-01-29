@@ -1,0 +1,240 @@
+/* disable scrolling on mobile with css */
+body {
+  overflow: hidden;
+}
+
+div {
+  border-radius: 3px;
+}
+
+button {
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 0px solid black;
+  color: grey;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(1.13);
+}
+
+button::after, button::before {
+  border-radius: 13px;
+}
+
+.debugbutton {
+  position: absolute;
+  left: 0pt;
+  color: rgba(200, 0, 0, 0.7);
+}
+
+button:hover, button:active {
+  background-color: #90bee3;
+  color: white;
+}
+
+.vorgang {
+  width: 32%;
+  height: 2.0em;
+  font-size: 1.3em;
+  color: rgba(50, 50, 50, 0.7);
+}
+
+.hilight {
+  background-color: #205a8a;
+  color: white;
+  border: #293743;
+}
+
+.red {
+  background-color: rgba(255, 100, 100, 1);
+  color: white;
+  border: #90bee3;
+}
+
+.tanken {
+  background-color: yellow;
+  color: grey;
+}
+
+.green {
+  background-color: #1fd51c;
+  color: white;
+  border: #90bee3;
+}
+
+input, select, button {
+  border-radius: 4px;
+  margin: 2px;
+  font-size: 1.3em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+input[type="checkbox"] {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.km:hover {
+  background-color: #90bee3;
+  color: white;
+}
+
+.kmdisplay {
+  background-color: rgba(0, 0, 0, 1);
+  color: lightgray;
+  border-radius: 0.4em;
+  display: flex;
+  width: 100%;
+}
+
+.kmbox {
+  width: 14%;
+  overflow: auto;
+  text-align: right;
+}
+
+.km:disabled, span.km:disabled {
+  background-color: rgba(10, 10, 10, 0.9);
+}
+
+/* vertical align the plus and minus in the middle */
+.km, span.km {
+  text-align: center;
+  align-items: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 2.5em;
+  width: 1.1em;
+  height: 1.2em;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  background: linear-gradient(to top, hsla(20, 0%, 0%, 0.9), 
+        hsla(0, 0%, 50%, 0.5) 50%, hsla(20, 0%, 0%, 0.9));
+}
+
+.changebar {
+  border-radius: 0.4em;
+  display: flex;
+  width: 100%;
+}
+
+.changekm {
+  text-align: center;
+  align-items: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 2.3em;
+  height: 1.2em;
+  width: 1.2em;
+  border-radius: 8px;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+::placeholder {
+  color: white;
+}
+
+/* Beschreibung Eingabefeld mit drei zeilen und zeilenumbrüchen */
+span span.description {
+  height: 3.6em;
+  font-size: 1.3em;
+  border-radius: 4px;
+  padding: 5px;
+  margin: 4%;
+  border: 1px solid grey;
+  resize: vertical; /* allow vertical resizing */
+}
+
+input.km, select.km, button.km {
+  color: white;
+}
+
+.block {
+  display: block;
+  border: none;
+  background-color: transparent;
+  padding: 14px 28px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.error {
+  background-color: #d51c0f;
+  color: rgb(234, 198, 198);
+  border: #90bee3;
+  padding: 2px;
+  border-radius: 3px;
+}
+
+.disable-dbl-tap-zoom {
+  touch-action: manipulation;
+}
+
+/* Container für den Zapfsäulen-Look */
+.pump {
+  display: flex;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  width: 100%;
+  height: 120px;
+}
+
+.pump-display-container {
+  background-color: #0a0a0a;
+  padding: 5px 5px 5px 5px;
+  border-radius: 8px;
+  width: 45%;
+  display: inline-block;
+  text-align: right;
+  height: 100px;
+}
+
+@font-face {
+  font-family: 'Digital-7';
+  src: url('/digital-7.woff') format('woff'),
+       url('/digital-7.ttf') format('truetype');
+}
+
+/* Das eigentliche Input-Feld */
+.gas-pump-input {
+  /* Hintergrund mit Farbverlauf für den LCD-Effekt */
+  background: linear-gradient(to bottom, #e2eb42 0%, #cbd61a 100%);
+  
+  /* Schrift-Styling */
+  color: #1a1a1a;
+  font-family: 'Digital-7', sans-serif;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: right;
+  
+  /* Form und Rahmen */
+  border: 4px solid #333;
+  border-radius: 4px;
+  padding: 5px 15px;
+  width: 55%;
+  outline: none;
+  
+  /* Innerer Schatten für Tiefe */
+  box-shadow: inset 0px 4px 10px rgba(0, 0, 0, 0.3);
+  
+  /* Leucht-Effekt der Segmente simulieren */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.gas-pump-input-red {
+  background: linear-gradient(to bottom, #fe7070 0%, #f1503a 100%);
+}
+
+/* Label-Styling (z.B. "PRICE TO PAY") */
+.pump-label {
+  color: #d1d1d1;
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  pointer-events: none;
+  text-align: right;
+  margin-right: 10px;
+}
