@@ -9,7 +9,7 @@ div
   div Benzin: {{ allLiter() }} Liter
   div CO2: {{ tonnenCO2() }} Tonnen CO2  
   div Verbrauch: {{ verbrauchOverall() }} Liter/100km
-  div Reparaturpauschale: {{perioden.reparaturpauschale(perioden.currentPeriod)}}€
+  div Reparaturpauschale: {{perioden.reparaturpauschale(perioden.currentPeriod)}} €/km
   div &nbsp;
 
   div(v-if="toRender.bookings.length != 0") 

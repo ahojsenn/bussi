@@ -1,5 +1,5 @@
 <template lang="pug">
-form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
+form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) lökö
   button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug?
   h2 Fahrtenbucheintrag \#{{ hauptbuch.bookings.length }} 
   div(v-if="!hostname().includes('konfi') && DEBUG") 
@@ -8,10 +8,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div last submitted: 
       span(v-html="lastSubmitted")
  
-  // Auswahl des Vorgangs
-  button.vorgang( :class="{'hilight': bookingtype=='Fahrt'}" @click="bookingtype='Fahrt'" type="button") Fahrt
-  button.vorgang( :class="{'hilight': bookingtype=='Tanken'}" @click="bookingtype='Tanken'" type="button") Tanken
-  button.vorgang( :class="{'hilight': bookingtype=='Sonstiges'}" @click="bookingtype='Sonstiges'" type="button") Sonstiges
+  BookingTypeSelector(v-model="bookingtype")
   br
 
   // Datum und Konto
@@ -22,95 +19,41 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
       option(v-for="sh in sh_store.stakeholder") {{ sh.Name }}
   br
   br
-  // Kilometer Eingabe
-  div
-    div.changebar
-      div.kmbox(v-for="i in [0,1,2,3]") 
-        button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled)
-      div.kmbox(v-for="i in [3,4,5]")
-        button.changekm(type="button" @click="km.inc(i); km.change(i)") +
+  
+  KilometerDisplay(
+    :digits="km.digits"
+    :kmDriven="km.kmDriven(+lastbk.km)"
+    :showWarning="km.toFar(+lastbk.km)"
+    @increment="(i) => { km.inc(i); kmChange(i) }"
+    @decrement="(i) => { km.dec(i); kmChange(i) }"
+  )
 
-    div.kmdisplay 
-      div.kmbox(style="overflow: auto")  {{km.kmDriven()}} km
-      div.kmbox(v-for="i in [0,1,2,3,4,5]")
-        button.km(disabled) {{km.digits[i]}}
-
-    div.changebar
-      div.kmbox(v-for="i in [0,1,2,3]") 
-        button.changekm(style="background-color: rgba(0,0,0,0.1)" disabled) 
-      div.kmbox(v-for="i in [3,4,5]")
-        button.changekm(type="button" @click="km.dec(i); km.change(i)") -
-
-  // Warnung wenn km zu weit
-  br
-  div
-    span(v-if="km.toFar()" class="error") Ist das nicht ein bisschen viel? Tanken Eintragung vergessen?
-
-  // Eingabe für Tanken oder Sonstiges
-  div.pump(v-if="bookingtype!='Fahrt'" ) 
-    div.pump-display-container
-      input(
-          :class="{'gas-pump-input-red': !isPositiveNumber(amount),\
-              'gas-pump-input' : true\
-          }" 
-        type="number" 
-        pattern="[0-9]+([.][0-9]+)?"
-        inputmode="decimal"
-        value="€"
-        placeholder="Euro" 
-        v-model="amount" 
-        spellcheck="false"
-        onfocus="this.select()"
-          )
-      br
-      span.pump-label Price to pay €
-    
-    div.pump-display-container(v-if="bookingtype==='Tanken'" )
-      input(
-        :class="{'gas-pump-input-red': !isPositiveNumber(liters),\
-              'gas-pump-input' : true\
-        }" 
-        type="number" 
-        pattern="[0-9]+([.][0-9]+)?"
-        inputmode="decimal"
-        value="0.00"
-        placeholder="Litres" 
-        v-model="liters" 
-        spellcheck="false"
-        onfocus="this.select()"
-        )
-      br
-      span.pump-label Litres
-      br
-      span.pump-label vollgetankt?
-      input(  type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" style="color: red") 
-
-    // Beschreibung Eingabe für Sonstiges mit zwei zeilenumbrüchen
-    span.pump-display-container(v-if="bookingtype==='Sonstiges'")
-      textarea.description( 
-        :class="{'red': thisbk.description==''}" 
-        type="text" 
-        name="description" 
-        placeholder="description, what did you purchase?" 
-        v-model="thisbk.description" required
-        )
+  FuelInput(
+    v-if="bookingtype!='Fahrt'"
+    v-model:amount="amount"
+    v-model:liters="liters"
+    v-model:vollgetankt="vollgetankt"
+    v-model:description="thisbk.description"
+    :showLiterInput="bookingtype==='Tanken'"
+    :showDescription="bookingtype==='Sonstiges'"
+    :isValid="isPositiveNumber"
+  )
  
   // debug info
   div(v-if="DEBUG")
     div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
-    div aktueller Verbrauch: {{calculateConsumption(thisbk)}} l/100km
-    div Durchschnittsverbrauch {{ averageConsumption() }} l/100km
+    div aktueller Verbrauch: {{consumption.calculateConsumption(+liters, thisbk.kmSinceLastFuelFill)}} l/100km
+    div Durchschnittsverbrauch {{ consumption.averageConsumption }} l/100km
     div km seit letztem mal vollgetankt: {{thisbk.kmSinceLastFuelFill}}
     div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
-    div km lezte Tankung: {{kmAtLastFuelfill()}}
-    div wieviel passt gerade in ten Tank: {{estimatedFuelCapacity(thisbk)}} 
+    div km lezte Tankung: {{consumption.kmAtLastFuelfill()}}
+    div wieviel passt gerade in ten Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} 
   
-  div ddd {{amount}}
   // Anzeige der Validierungsfehler
-  span(v-if="!validation(thisbk, bookingtype).ok" class="error" v-html="validation(thisbk, bookingtype).result") 
+  span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
   // Submit Button
   button#id_abschicken( 
-    :class="{'green': validation(thisbk, bookingtype).ok }"  
+    :class="{'green': validationResult.ok }"  
     style="width=100%" 
     type="submit") ins Fahrtenbuch eintragen
 </template>
@@ -119,238 +62,137 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 
 
 <script setup lang="ts">
-import { bookingIsTanken } from '~/mixins/bookingHelpers'
+logd("fahrtenbucheintrag.vue setup")
+import { computed } from 'vue'
 import { useHauptbuchStore } from '../../stores/hauptbuch'
 import { useStakeholderStore } from '../../stores/stakeholder'
 import { HauptbuchBooking } from '../../mixins/types'
 import logd from '~/mixins/logDebug'
-
+import { useKilometerCounter } from '~/composables/useKilometerCounter'
+import { useBookingForm } from '~/composables/useBookingForm'
+import { useBookingValidation } from '~/composables/useBookingValidation'
+import { useFuelConsumption } from '~/composables/useFuelConsumption'
+import BookingTypeSelector from '~/components/fahrtenbucheintrag/BookingTypeSelector.vue'
+import KilometerDisplay from '~/components/fahrtenbucheintrag/KilometerDisplay.vue'
+import FuelInput from '~/components/fahrtenbucheintrag/FuelInput.vue'
 
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
-const bookings = hauptbuch.bookings
+const bookingsRef = computed(() => hauptbuch.bookings)
+
 const DEBUG = ref(false)
-// save hostname from url in hostname
 const hostname = () => {
-  // Access the hostname from the browser's window.location object
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-    return window.location.hostname;
+    return window.location.hostname
   }
 }
-let lastSubmitted = ref("nothing yet")
-const vollgetankt = ref(true)
-const liters = ref("Litres")
-const amount = ref("Euro")
 
-const bookingtype = ref('Fahrt')
 const today = new Date().toISOString().slice(0, 16)
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length - 1])
-const allLiters = hauptbuch.bookings.reduce((acc, cv) => acc += cv.liters, 0)
-const isParsableNumber = (v: any): boolean => !isNaN(parseFloat(v)) && isFinite(v);
-const isPositiveNumber = (v: any): boolean => isParsableNumber(v) && v > 0
-const scrollIntoView = (id: string) => {
-  const inputField = document.getElementById(id);
-  alert('hi')
-  if (inputField) inputField.scrollIntoView({ behavior: 'smooth' });
-}
-const averageConsumption = () => Math.round(10000 * allLiters / allKM) / 100
-const kmAtLastFuelfill = (): number => bookings.filter(b => bookingIsTanken(b)).reverse()[0].km || 0
 
-const thisbk = ref(new HauptbuchBooking(
-  (hauptbuch.bookings.length + 1).toString(),//nr: string,
-  today,//date: string,
-  '',//account: string,
-  lastbk.value.km,//km: number,
-  0,//kmSinceLastEntry: 0,
-  lastbk.value.km - kmAtLastFuelfill(),//kmSinceLastFuelFill?: 0,
-  0,//liters: string,
-  (hauptbuch.bookings.length + 1),//rowNr?: number,
-  0,//fuelPriceInEuro: string,
-  0,//amount: string,
-  '',//description: string,
-  '',//key: string,
-  (hauptbuch.bookings.length + 1),//rowNr?: number,
-))
-const allKM = thisbk.value.km - hauptbuch.bookings[0].km
+const consumption = useFuelConsumption(bookingsRef)
+const validation = useBookingValidation()
+const { isPositiveNumber, validateFahrt, validateTanken, validateSonstiges } = validation
 
-// set d1 to d6 according to the digits in lastbk.km
-const km = reactive({
-  digits: new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km, i)),
-  value: () => +km.digits.join(''),
-  kmDriven: (): number => km.value() - +lastbk.value.km,
-  range: 950,
-  toFar: () => km.value() - +lastbk.value.km > km.range,
-  withinRange: () => km.value() - +lastbk.value.km < km.range,
-  inc: (i: number) => km.set(i, km.digits[i] + 1),
-  dec: (i: number) => km.set(i, km.digits[i] - 1),
-  change: (i: number) => {
-    // add style change to the 
-    thisbk.value.kmSinceLastEntry = km.kmDriven()
-    thisbk.value.kmSinceLastFuelFill = lastbk.value.kmSinceLastFuelFill + km.kmDriven()
-    thisbk.value.km = km.value()
-    console.log('change', i, thisbk.value, lastbk.value)
-  },
-  set: (index: number, value: number) => {
-    if (value == 10) {
-      km.digits[index] = 0
-      km.set(index - 1, km.digits[index - 1] + 1)
-    }
-    else if (value == -1) {
-      km.digits[index] = 9
-      km.set(index - 1, km.digits[index - 1] - 1)
-    }
-    else {
-      km.digits[index] = +value
-    }
-    // if the km.value is smaller than the last booking, reset to the last booking
-    if (km.value() < +lastbk.value.km) {
-      km.digits = new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km, i))
-    }
-  }
-})
+const initialBooking = new HauptbuchBooking(
+  (hauptbuch.bookings.length + 1).toString(),
+  today,
+  '',
+  lastbk.value.km,
+  0,
+  lastbk.value.km - consumption.kmAtLastFuelfill(),
+  0,
+  0,
+  0,
+  0,
+  '',
+  '',
+  hauptbuch.bookings.length + 1
+)
 
-/**
- * Returns the i-th digit of a given number.
- * @param num - The number to extract the digit from.
- * @param index - The zero-based index of the digit (from left to right).
- * @returns The digit at the given index, or null if invalid.
- */
-function getDigitAt(num: number, index: number): number {
-  // Validate inputs
-  if (!Number.isFinite(num) || !Number.isInteger(index) || index < 0) {
-    console.error("Invalid input: num must be finite, index must be a non-negative integer.");
-    return 0;
-  }
+const form = useBookingForm(initialBooking)
+const { bookingtype, thisbk, vollgetankt, liters, amount, lastSubmitted, buildDescription, resetForm } = form
 
-  // Work with absolute value to ignore sign
-  const numStr = Math.abs(num).toString();
+const km = useKilometerCounter(lastbk.value.km)
 
-  // Check index bounds
-  if (index >= numStr.length) {
-    console.warn("Index out of range.");
-    return 0;
-  }
-
-  // Convert the character at index to a number
-  return Number(numStr.charAt(index));
+const kmChange = (i: number) => {
+  thisbk.value.kmSinceLastEntry = km.kmDriven(+lastbk.value.km)
+  thisbk.value.kmSinceLastFuelFill = lastbk.value.kmSinceLastFuelFill + km.kmDriven(+lastbk.value.km)
+  thisbk.value.km = km.value()
+  km.resetToMinimum(+lastbk.value.km)
 }
 
-
-
-const validation = (bk: HauptbuchBooking, bt: string): { ok: boolean; result: string } => {
-  let retString = ''
-
+const validationResult = computed(() => {
+  const bk = thisbk.value
+  const bt = bookingtype.value
+  
   if (bt === 'Fahrt') {
-    retString += bk.date === '' ? 'Date not set<br>' : ''
-    retString += bk.kmSinceLastEntry < 1 ? 'Bitte km angeben<br>' : ''
-    retString += bk.account === '' ? 'bitte Konto angeben<br>' : ''
-    retString += km.withinRange() ? '' : 'km not within range<br>'
-    retString += bk.amount != 0 ? 'Bei Eintrag "Fahrt" bitte keinen Betrag angeben<br>' : ''
-    retString += bk.liters != 0 ? 'Bei Eintrag "Fahrt" bitte keine Liter angeben<br>' : ''
+    return validateFahrt(bk, km.withinRange(+lastbk.value.km))
   }
-
+  
   if (bt === 'Tanken') {
     bk.amount = +amount.value
     bk.fuelPriceInEuro = +amount.value / +liters.value
     bk.liters = +liters.value
-    retString += km.withinRange() ? '' : 'km not within range<br>'
-    retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>' : ''
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
-    retString += bk.account === '' ? 'Konto not selected<br>' : ''
-
-    calculateConsumption(bk)
-    if (vollgetankt.value) {
-      retString += bk.consumption > 1.2 * averageConsumption() ? 'Verbrauch zu hoch, bitte prüfen<br>' : ''
-    } else {
-      // retString += "wirklich vollgetankt?"
-    }
-
-    retString += bk.consumption < 0.8 * averageConsumption() ? 'Verbrauch zu niedrig, bitte prüfen<br>' : ''
-    retString += bk.fuelPriceInEuro < 1.2 ? 'Kraftstoffpreis zu niedrig, bitte prüfen<br>' : ''
-    retString += bk.fuelPriceInEuro > 2.5 ? 'Kraftstoffpreis zu hoch, bitte prüfen<br>' : ''
-
+    bk.consumption = consumption.calculateConsumption(+liters.value, bk.kmSinceLastFuelFill)
+    return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption.value, vollgetankt.value)
   }
-
+  
   if (bt === 'Sonstiges') {
     bk.amount = +amount.value
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
-    retString += bk.account === '' ? 'Konto nicht ausgewählt<br>' : ''
-    retString += bk.description === '' ? 'Bitte Beschreibung angeben<br>' : ''
+    return validateSonstiges(bk)
   }
+  
+  return { ok: false, result: 'Unbekannter Buchungstyp' }
+})
 
-  return (retString !== '') ? { ok: false, result: retString } : { ok: true, result: 'ok' }
-}
-
-// calcculate verbrauch and € pro liter and set it in thisbk
-const calculateConsumption = (b: HauptbuchBooking) => {
-  b.consumption = Math.round(10000 * +liters.value / b.kmSinceLastFuelFill) / 100
-  return b.consumption
-}
-const estimatedFuelCapacity = (b: HauptbuchBooking): number => thisbk.value.kmSinceLastFuelFill / averageConsumption()
-
-// on submit, create a new booking
 const onSubmit = async () => {
   logd("fahrtenbucheintrag.vue onSubmit: ")
   lastSubmitted.value = ""
-  // saetze die werte in thisbk
 
-  // thisbk.value.account = sh.value
   thisbk.value.date = thisbk.value.date.toString()
-  //thisbk.value.km = thisbk.value.km.toString()
   thisbk.value.kmSinceLastEntry = thisbk.value.km - lastbk.value.km
   thisbk.value.liters = 0
+  
   if (bookingtype.value === 'Tanken') {
-    thisbk.value.liters = +((document.querySelector('input[name="liters"]') as HTMLInputElement).value || 0)
-    // if not vollgetankt calculate kmSincelastFuelFill with Durchschnittsverbrauch...
-
-
-
+    thisbk.value.liters = +((document.querySelector('input[name="liters"]') as HTMLInputElement)?.value || 0)
   }
-  thisbk.value.consumption =
-    (bookingtype.value === 'Tanken') ?
-      (100 * +(thisbk.value.liters) / (km.kmDriven() + thisbk.value.kmSinceLastFuelFill)) : 0
+  
+  thisbk.value.consumption = (bookingtype.value === 'Tanken') 
+    ? (100 * +(thisbk.value.liters) / (km.kmDriven(+lastbk.value.km) + thisbk.value.kmSinceLastFuelFill)) 
+    : 0
 
-  // make a nice description
   const od = thisbk.value.description
-  thisbk.value.description = "FBE: " + bookingtype.value
-  thisbk.value.description += (thisbk.value.kmSinceLastEntry > 0) ? " :: km: " + thisbk.value.kmSinceLastEntry : ''
-  thisbk.value.description += (od != "") ? " :: " + od : ""
-  // if "nicht vollgetankt"
-  thisbk.value.description += (!vollgetankt.value) ? " :: nicht vollgetankt" : ""
-
+  thisbk.value.description = buildDescription(
+    bookingtype.value,
+    thisbk.value.kmSinceLastEntry,
+    od,
+    vollgetankt.value
+  )
 
   console.log('onSubmit', thisbk.value)
-  const vres = validation(thisbk.value, bookingtype.value)
-  if (vres.ok) {
+  
+  if (validationResult.value.ok) {
     lastSubmitted.value += thisbk.value.description + "<br>" + JSON.stringify(thisbk.value)
     await hauptbuch.createBooking(thisbk.value)
-
-    // read tha hauptbuch data again to get the last booking updated
     await hauptbuch.loadBussiData()
-    // reset lastbk and thisbk
+    
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length - 1]
-    thisbk.value = new HauptbuchBooking(
-      (hauptbuch.bookings.length + 1).toString(),//nr: string,
-      today,//date: string,
-      '',//account: string,
-      lastbk.value.km,//km: number,
-      0,//kmSinceLastEntry: 0,
-      (vollgetankt.value) ? 0 : lastbk.value.kmSinceLastFuelFill - +liters.value / (100 * averageConsumption()),//kmSinceLastFuelFill?: 0,
-      0,//liters: string,
-      0,//consumption
-      0,//fuelPriceInEuro: string,
-      0,//amount: string,
-      '',//description: string,
-      '',//key: string,
-      (hauptbuch.bookings.length + 1),//rowNr?: number,
+    const kmSinceLastFuelFill = vollgetankt.value 
+      ? 0 
+      : lastbk.value.kmSinceLastFuelFill - +liters.value / (100 * consumption.averageConsumption.value)
+    
+    resetForm(
+      hauptbuch.bookings.length + 1,
+      lastbk.value.km,
+      kmSinceLastFuelFill,
+      today
     )
-    // reset km digits with lastbk.value.km
-    km.digits = new Array(6).fill(0).map((_, i) => getDigitAt(lastbk.value.km, i))
+    km.reset(lastbk.value.km)
   }
 }
-
 </script>
 
 <style scoped src="./styles.css"></style>

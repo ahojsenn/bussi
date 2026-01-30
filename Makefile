@@ -6,4 +6,5 @@ dev:
 
 make devserver:
 	killall node\
-	&& (yarn dev --host --no-qr > del.me.log 2>&1 &)
+	&& (yarn dev --host --no-qr > del.me.log 2>&1 &)\
+	&& qrencode -t UTF8  "${DEVURL}"
