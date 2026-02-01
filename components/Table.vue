@@ -14,8 +14,17 @@ div
             :disabled="pagenr == pageNr"
             v-on:click="setPage(pagenr)") {{ (pagenr-1)*rowsPerPage+1 }}..{{ (pagenr)*rowsPerPage }}
       br
-      input(v-model="newFilter", placeholder="<enter> new filter", v-on:keyup.enter="setFilterText()")
-      input(type="submit", value="set filter", v-on:click="setFilterText()")
+      div.filter-box
+        input(
+          v-model="newFilter" 
+          placeholder="<enter> new filter" 
+          @keyup.enter="handleSetFilter"
+        )
+        input(
+          type="submit" 
+          value="set filter" 
+          @click="handleSetFilter"
+        )   
       span(v-if="md.filters[0]") <br />filters:
       span.filter(v-for="filter in md.filters", v-on:click="deleteFilter(filter)")
         span.isAntiFilter(v-if="filter.isAnti == true") {{ filter.title }}: {{ filter.value }}
@@ -38,8 +47,8 @@ div
         tr(v-for="row in md.rows")
           td(
             v-for="(col, colnr) in columns()",
-            v-on:click.left="setFilter(col, row[col], false)",
-            v-on:click.right="setFilter(col, row[col], true)",
+            v-on:click.left="handleSetFilter(col, row[col], false)",
+            v-on:click.right="handleSetFilter(col, row[col], true)",
             v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",     
             v-bind:class="{ hilight: row['Name'] == '7 ErgebnisNachSteuern', underaccountrow: row['Type'] == 'Unterkonto', greylight: row['Name'] && row['Name'].includes('Steuer:') }"
           )
@@ -101,19 +110,20 @@ const md = reactive({
   rows: props.selectedBookingsToRender,
 })
 
-md.rows = props.selectedBookingsToRender
+
 watch(
   () => props.selectedBookingsToRender,
   () => {
     md.rows = props.selectedBookingsToRender
   }
 )
-const data = props.selectedBookingsToRender
+
+const data = md.rows
 let currentCol = 0
 let sortOrder = ref(true)
 const renderAggregator = true
 const rowsstack = [] as Array<any>
-let newFilter = ""
+const newFilter = ref("")
 const rowsPerPage = ROWSPERPAGE
 let pageNr = 0
 const toRow = ROWSPERPAGE
@@ -232,28 +242,27 @@ const sumEuro = function sumEuro(title: string) {
   })
   return mySumString
 }
-/*
-const sum = function sum(title:any) {
-  let mySum = 0
+
+const sum =   (title:any) :number => {
+  let mySum = 0;
   (md.rows || []).forEach(function (row: any) {
     mySum += row[title]
   })
   return Math.round(100 * mySum) / 100
 }
-*/
-/*
-const setFilterText = function setFilterText() {
-  const str = newFilter
+
+
+const handleStFilterText =  ()  => {
+  logd("Table.setFilterText: ", newFilter.value )
+  const str = newFilter.value.trim()
   const filter: Filter = { title: "", value: "", isAnti: false }
   filter.title = "pattern"
-  filter.value = str
   filter.isAnti = str.charAt(0) === "!" // true if first char is '!'
-  filter.value = filter.isAnti ? str.substr(1) : str // delete the first '!' char if antifilter
-  setFilter(filter.title, filter.value, filter.isAnti)
-  newFilter = null
+  filter.value = filter.isAnti ? str.slice(1) : str // delete the first '!' char if antifilter
+  handleSetFilter(filter.title, filter.value, filter.isAnti)
 }
-*/
-const getFilterFromQuery = function () {
+
+const getFilterFromQuery =  () => {
   md.filters =
     $route.query && $route.query.filters
       ? JSON.parse(decodeURIComponent($route.query.filters.toString()))
@@ -262,9 +271,9 @@ const getFilterFromQuery = function () {
   setPage(pageNr)
   md.rows = executeFilter(md.rows || [], md.filters)
 }
-/*
-const setFilter = function setFilter(title: string, value: string, isAntiFilter: boolean) {
-  logd("Table.setfilter: ", title, value)
+
+const handleSetFilter = (title: string, value: string, isAntiFilter: boolean) => {
+  logd("Table.handleSetFilter: ", title, value)
   const filter = { title, value, isAnti: isAntiFilter }
   // only allow one filter of the same type
   const i = md.filters.findIndex(
@@ -274,16 +283,17 @@ const setFilter = function setFilter(title: string, value: string, isAntiFilter:
 
   const query = Object.assign({}, $route.query)
   query.filters = JSON.stringify(md.filters)
-  query.filters = $router.replace({ query })
+  $router.replace({ query }) 
 
-  md.rows = data
-  setPage(pageNr)
-  md.rows = executeFilter(md.rows, md.filters)
-  logd("Table.setfilter: ", md.filters)
+  const allData = data || []
+const filteredData = executeFilter(allData, md.filters)
+
+md.rows = filteredData
+setPage(1) // Sicherer, um auf die erste Seite zurückzukehren
+  logd("Table.handleSetFilter: ", md.filters)
 }
-  */
-/*
-const deleteFilter = function deleteFilter(filter) {
+  
+const deleteFilter = function deleteFilter(filter :any) {
   logd("Table.deleteFiler: ", filter, md.filters)
   const index = md.filters.indexOf(filter)
   logd(" ...", index)
@@ -292,13 +302,13 @@ const deleteFilter = function deleteFilter(filter) {
   }
   const query = Object.assign({}, $route.query)
   query.filters = JSON.stringify(md.filters)
-  query.filters = $router.replace({ query })
+  //query.filters = $router.replace({ query }) 
 
   md.rows = data
   setPage(pageNr)
-  md.rows = executeFilter(md.rows, md.filters)
+  md.rows = executeFilter(md.rows || [], md.filters)
 }
-*/
+
 const executeFilter = function (d: any[], filters: Filter[]): any[] {
   return d.filter(function (row) {
     let retval = true
@@ -310,7 +320,12 @@ const executeFilter = function (d: any[], filters: Filter[]): any[] {
           cmpstr += row[cell] ? row[cell].toString().toLowerCase() : ""
         }
         if (cmpstr.includes(filter.value.toLowerCase()) && filter.isAnti) retval = false
-        if (!cmpstr.includes(filter.value.toLowerCase())) retval = false
+        const matches = cmpstr.includes(filter.value.toLowerCase());
+        if (filter.isAnti) {
+          if (matches) retval = false; // Gefunden, aber wir wollen es NICHT -> aussortieren
+        } else {
+          if (!matches) retval = false; // Nicht gefunden, aber wir wollen es -> aussortieren
+      }
       } else if (filter.isAnti) {
         retval = retval && row[filter.title] !== filter.value
       } else if (!filter.isAnti) {
@@ -320,20 +335,20 @@ const executeFilter = function (d: any[], filters: Filter[]): any[] {
     return retval
   })
 }
-/*
-const logArray = function logArray(arr) {
+
+const logArray = function logArray(arr: any) {
   console.log("in logArray", arr)
 }
-const sortArray = function sortArray(array, sortKey) {
+const sortArray = function sortArray(array: any, sortKey: string) {
   const key = sortKey || sortKey || "#"
-  sortOrder = !sortOrder // toggle sortOrder
-  if (sortOrder) {
-    array.sort((a, b) => a[key] > b[key])
+  sortOrder.value = !sortOrder.value // toggle sortOrder
+  if (sortOrder.value) {
+    array.sort((a: any, b: any) => a[key] > b[key])
   } else {
-    array.sort((a, b) => a[key] < b[key])
+    array.sort((a: any, b: any ) => a[key] < b[key])
   }
 }
-  */
+
 
 setPage(1)
 //getFilterFromQuery()

@@ -1,14 +1,31 @@
-import logd from './logDebug';
 import type { HauptbuchBooking } from './types';
 import { useStakeholderStore } from '../stores/stakeholder'
 
-function isValidDate(dateString: string) {
-  let regEx = /^\d{4}-\d{2}-\d{2}$/;
-  if (!new RegExp(regEx).exec(dateString)) return false;  // Invalid format
-  let d = new Date(dateString);
-  let dNum = d.getTime();
-  if (!dNum && dNum !== 0) return false; // NaN value, Invalid date
-  return d.toISOString().slice(0, 10) === dateString;
+function isValidDate(dateString: string): boolean {
+  // Dieser eine Regex deckt alles ab: Datum sowie optional (Zeit und optional Sekunden)
+  const regEx = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$/;
+  
+  // 1. Format-Check
+  if (!regEx.test(dateString)) return false;
+
+  // 2. Parsen in ein Date-Objekt
+  // Wir ersetzen das Leerzeichen durch 'T' für ISO-Konformität beim Parsen
+  const date = new Date(dateString.replace(" ", "T"));
+
+  // 3. Logik-Check (Gültiges Datum wie 31. Feb?)
+  // Wenn JS ein ungültiges Datum parst (z.B. 31.02.), "rollt" es zum 03.03.
+  // Wir prüfen, ob der Zeitstempel gültig ist (NaN Check)
+  if (isNaN(date.getTime())) return false;
+
+  // 4. Zeitfenster-Check (50 Jahre Vergangenheit bis Jetzt + Puffer)
+  const now = new Date();
+  const fiftyYearsAgo = new Date();
+  fiftyYearsAgo.setFullYear(now.getFullYear() - 50);
+  
+  const buffer = new Date();
+  buffer.setFullYear(now.getFullYear() + 1); // 1 Jahr Puffer in die Zukunft
+
+  return date >= fiftyYearsAgo && date <= buffer;
 }
 
 const lastBooking: Partial<HauptbuchBooking> = {}
@@ -25,9 +42,9 @@ export const checkBookingSyntax = (booking: HauptbuchBooking, lastBooking: Haupt
 
   // check if amount is reasonable
   if (
-    ((Number.parseFloat(booking.amount) < 0) && (booking.key != "Jahresendbuchung"))
-    || Number.parseFloat(booking.amount) > 5000)
-    errorCode += "<br>booking.amount " + booking.amount + " is unreasonable" 
+    ((booking.amount < 0) && (booking.key != "Jahresendbuchung"))
+    || booking.amount > 5000)
+    errorCode += "<br>booking.amount " + booking.amount + " is unreasonable"
 
   // check in km are reasonable
   if (booking.km < 0 || booking.km > 3000000) errorCode += "<br>booking.lm " + booking.km + " is unreasonable"

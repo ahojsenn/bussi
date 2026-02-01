@@ -72,6 +72,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         parseFloat(b["Betrag"].replace(',', '.').replace('€', '').trim()) || 0,
         b["Was"],
         b["V-Schlüssel"],
+        b.rowNr = b.rowNr
       ))
       // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
