@@ -18,13 +18,13 @@ export function useBookingValidation() {
     kmWithinRange: boolean
   ): ValidationResult => {
     let retString = ''
-    
+
     retString += bk.date === '' ? 'Date not set<br>' : ''
     retString += bk.kmSinceLastEntry < 1 ? 'Bitte km angeben<br>' : ''
     retString += bk.account === '' ? 'bitte Konto angeben<br>' : ''
     retString += kmWithinRange ? '' : 'km not within range<br>'
-    retString += bk.amount != 0 ? 'Bei Eintrag "Fahrt" bitte keinen Betrag angeben<br>' : ''
-    retString += bk.liters != 0 ? 'Bei Eintrag "Fahrt" bitte keine Liter angeben<br>' : ''
+    retString += bk.amount && bk.amount != 0 ? 'Bei Eintrag "Fahrt" bitte keinen Betrag ' + bk.amount + ' angeben<br>' : ''
+    retString += bk.liters && bk.liters != 0 ? 'Bei Eintrag "Fahrt" bitte keine Liter ' + bk.liters + ' angeben<br>' : ''
 
     return retString !== '' ? { ok: false, result: retString } : { ok: true, result: 'ok' }
   }
@@ -43,19 +43,19 @@ export function useBookingValidation() {
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
 
     if (vollgetankt) {
-      retString += bk.consumption > CONSUMPTION_TOLERANCE.high * averageConsumption 
-        ? 'Verbrauch zu hoch, bitte prüfen<br>' 
+      retString += bk.consumption > CONSUMPTION_TOLERANCE.high * averageConsumption
+        ? 'Verbrauch zu hoch, bitte prüfen<br>'
         : ''
     }
 
-    retString += bk.consumption < CONSUMPTION_TOLERANCE.low * averageConsumption 
-      ? 'Verbrauch zu niedrig, bitte prüfen<br>' 
+    retString += bk.consumption < CONSUMPTION_TOLERANCE.low * averageConsumption
+      ? 'Verbrauch zu niedrig, bitte prüfen<br>'
       : ''
-    retString += bk.fuelPriceInEuro < FUEL_PRICE_LIMITS.min 
-      ? 'Kraftstoffpreis zu niedrig, bitte prüfen<br>' 
+    retString += bk.fuelPriceInEuro < FUEL_PRICE_LIMITS.min
+      ? 'Kraftstoffpreis zu niedrig, bitte prüfen<br>'
       : ''
-    retString += bk.fuelPriceInEuro > FUEL_PRICE_LIMITS.max 
-      ? 'Kraftstoffpreis zu hoch, bitte prüfen<br>' 
+    retString += bk.fuelPriceInEuro > FUEL_PRICE_LIMITS.max
+      ? 'Kraftstoffpreis zu hoch, bitte prüfen<br>'
       : ''
 
     return retString !== '' ? { ok: false, result: retString } : { ok: true, result: 'ok' }
