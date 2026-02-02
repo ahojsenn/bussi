@@ -1,5 +1,5 @@
 <template lang="pug">
-div 
+div
   div(v-if="tableColumns.length > 0 || myFilters.length > 0")
     div 
     b {{ konto }}: {{ displayRows.length }} Einträge on page {{ pageNr == -1 ? 'all' : pageNr }}
@@ -32,13 +32,16 @@ div
         span.isAntiFilter(v-if="filter.isAnti == true") {{ filter.title }}: {{ filter.value }}
         span.isFilter(v-else) {{ filter.title }}: {{ filter.value }}
       
+    #popup(
+          v-html="prettyJSON(currentRow)"
+          :class="{ visible: mouseIsOverCol1to5(), invisible: !(mouseIsOverCol1to5()) }"
+        )
+      
 
-      #popup(v-html="prettyJSON(currentRow)" v-bind:class="{ visible: mouseIsOverCol1to5(), invisible: !mouseIsOverCol1to5()}" ) 
-    
     table
       thead
-        th(v-for="col,i in tableColumns" class="sortable-header")
-          div(@click.exact="sortArray(col)")
+        th(v-for="col,i in tableColumns" )
+          div(@click.exact="sortArray(col)" class="sortable-header")
             span {{ col }}
             span(v-if="sortKey == col && sortOrder > 0") ↓
             span(v-if="sortKey == col && sortOrder < 0") ↑
@@ -46,9 +49,12 @@ div
             span(v-if="['kmSinceLastEntry', 'amount', 'haben', 'soll'].includes(col)")  {{ sumRow(col) }}  
             span(v-else) &nbsp;
             // Arrows for sort indication
-            // ↓↓↓ by default unless sorted ascending && sortKey == col
             span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑↑
             span.arrow(v-else) ↓↓↓
+          button(
+            @click="toggleAggregation(col)"
+            :class="aggregateKey === col ? 'active' : ''"
+            ) <==>
              
     
       tbody
@@ -82,7 +88,7 @@ div
 
 <script setup lang="ts">
 import logd from "../mixins/logDebug"
-import { watch, ref, reactive, onMounted } from "vue"
+import { watch, ref, onMounted } from "vue"
 
 interface Filter {
   title: string
@@ -103,6 +109,8 @@ const props = defineProps({
   showSum: Boolean,
 })
 
+const aggregateKey = ref("")
+const toggleAggregation = (str: string) => aggregateKey.value = aggregateKey.value === str ? "" : str
 const sortKey = ref('nr'); // Standard-Sortierung
 const sortOrder = ref(1); // 1 = aufsteigend, -1 = absteigend
 const myFilters = ref<Array<Filter>>([])
@@ -133,24 +141,76 @@ const sortedRows = computed(() => {
     return 0;
   });
 });
+
+// Aggregation der Zeilen basierend auf dem aggregateKey 
+const aggregatedRows = computed(() => {
+  logd("Table.aggregatedRows: aggregating by ", aggregateKey.value);  
+  const data = sortedRows.value;
+  if (!aggregateKey.value) return data;
+  
+  const grouped: { [key: string]: any[] } = {};
+  data.forEach((row) => {
+    const key = row[aggregateKey.value] || "undefined";
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+    grouped[key].push(row);
+  });
+
+  // Jetzt die gruppierten Daten in ein Array umwandeln
+  const result: any[] = [];
+
+  // jede Zelle einer Gruppe aggregieren
+  // und nur numerische Spalten summieren
+  for (const key in grouped) {
+    const group = grouped[key];
+    const aggregatedRow: any = {};
+    for (const col in group[0]) {
+      if (typeof group[0][col] === "number") {
+        aggregatedRow[col] = group.reduce((sum, row) => sum + (row[col] || 0), 0);
+      } else {
+        aggregatedRow[col] = group[0][col]; // z.B. String-Werte übernehmen
+      }
+    }
+    result.push(aggregatedRow);
+  }
+
+  return result;
+});
+
+
 const displayRows = computed(() => {
-  if (pageNr.value === -1) return sortedRows.value; // "Alle anzeigen" Modus
+  logd("Table.displayRows: calculating displayRows for pageNr ", pageNr.value);
+  const returnArray = aggregatedRows.value;
+  if (pageNr.value === -1) return returnArray // "Alle anzeigen" Modus
   const start = (pageNr.value - 1) * ROWSPERPAGE;
   const end = start + ROWSPERPAGE;
-  return sortedRows.value.slice(start, end);
+  return returnArray.slice(start, end);
 });
+
 let pageNr = ref(1);
-const paginatedRows = computed(() => {
-  if (pageNr.value === -1) return filteredRows.value; // "Alle anzeigen" Modus
-  const start = (pageNr.value - 1) * ROWSPERPAGE;
-  const end = start + ROWSPERPAGE;
-  return filteredRows.value.slice(start, end);
-});
 const nrOfPages = computed(() => {
   const rowCount = filteredRows.value ? filteredRows.value.length : 0;
   const pages = Math.ceil(rowCount / rowsPerPage);
   return pages;
 });
+
+
+const tableColumns = computed(() => {
+  const noFilterFor = "Net FileCreated Steuer Year Month";
+  const rows = displayRows.value; // Kein 'this' nötig
+
+// Optionales Chaining (?.) und Prüfung auf Länge
+  if (!rows || rows.length === 0) {
+    console.log("Table.columns: Keine Daten vorhanden");
+    return [];
+  }
+  // Wir nehmen die Keys der ersten Zeile
+  return Object.keys(rows[0] || []).filter(
+    (key) => !noFilterFor.includes(key)
+  );
+});
+
 const unSetPage =  () =>  pageNr.value = -1
 
 
@@ -192,25 +252,6 @@ const prettyJSON = function (value: any) {
     .replace(/\n/g, "<br>")
     .replace(/[ ]/g, "&nbsp")
 }
-
-
-const tableColumns = computed(() => {
-  const noFilterFor = "Net FileCreated Steuer Year Month";
-  const rows = displayRows.value; // Kein 'this' nötig
-  console.log("Table.columns neu berechnet für", rows?.length, "Zeilen");
-
-// Optionales Chaining (?.) und Prüfung auf Länge
-  if (!rows || rows.length === 0) {
-    console.log("Table.columns: Keine Daten vorhanden");
-    return [];
-  }
-  console.log("Table.columns neu berechnet für", rows.length, "Zeilen");
-  // Wir nehmen die Keys der ersten Zeile
-  return Object.keys(rows[0] || []).filter(
-    (key) => !noFilterFor.includes(key)
-  );
-});
-
 
 const euro = function (x: number) {
   //logd("Table.euro, got called")
