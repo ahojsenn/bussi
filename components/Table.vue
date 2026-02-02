@@ -37,11 +37,12 @@ div
     
     table
       thead
-        th(v-for="col,i in tableColumns")
-          div(@click.exact="sortArray(displayRows.value, col)") {{ col }}
+        th(v-for="col,i in tableColumns" class="sortable-header")
+          div(@click.exact="sortArray(col)") {{ col }} nn
             <br />
-            span(v-if="'kmSinceLastEntry Amount haben soll'.indexOf(col) > -1")  {{ sumRow(col) }}  
+            span(v-if="'kmSinceLastEntry amount haben soll'.indexOf(col) > -1")  {{ sumRow(col) }}  
             span(v-else) &nbsp;
+            span.arrow ↓↓↓
              
     
       tbody
@@ -96,13 +97,26 @@ const props = defineProps({
   showSum: Boolean,
 })
 
-
+const sortKey = ref('date'); // Standard-Sortierung
+const sortOrder = ref(1); // 1 = aufsteigend, -1 = absteigend
 const myFilters = ref<Array<Filter>>([])
 const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);
 const filteredRows = computed(() => executeFilter(allData.value, myFilters.value));
+const sortedRows = computed(() => {
+  const data = [...filteredRows.value]; 
+  return data.sort((a, b) => {
+    // Zugriff auf .value innerhalb von computed ist wichtig!
+    const valA = a[sortKey.value];
+    const valB = b[sortKey.value];
+
+    if (valA < valB) return -1 * sortOrder.value;
+    if (valA > valB) return 1 * sortOrder.value;
+    return 0;
+  });
+});
 const displayRows = computed(() => {
-  if (pageNr.value === -1) return filteredRows.value; // "Alle anzeigen" Modus
+  if (pageNr.value === -1) return sortedRows.value; // "Alle anzeigen" Modus
   const start = (pageNr.value - 1) * ROWSPERPAGE;
   const end = start + ROWSPERPAGE;
   return filteredRows.value.slice(start, end);
@@ -130,7 +144,6 @@ watch(
 )
 
 let currentCol = 0
-let sortOrder = ref(true)
 const renderAggregator = true
 const rowsstack = [] as Array<any>
 const newFilter = ref("")
@@ -141,6 +154,7 @@ const $route = useRoute()
 const $router = useRouter()
 const col = {}
 const filters = []
+
 
 onMounted(() => {
   // logd("Table.mounted: ", $route.query.filters)
@@ -309,18 +323,17 @@ const executeFilter =  (d: any[], filters: Filter[]): any[] =>  {
   });
 };
 
-
-const sortArray = function sortArray(array: any, sortKey: string) {
-  const key = sortKey || sortKey || "#"
-  sortOrder.value = !sortOrder.value // toggle sortOrder
-  if (sortOrder.value) {
-    array.sort((a: any, b: any) => a[key] > b[key])
+const sortArray = (col: string) => {
+  logd("Table.sortArray: sorting by ", col);
+  if (sortKey.value === col) {
+    // Wenn man auf die gleiche Spalte klickt: Richtung umkehren
+    sortOrder.value = sortOrder.value * -1;
   } else {
-    array.sort((a: any, b: any ) => a[key] < b[key])
+    // Wenn neue Spalte: Auf dieser Spalte aufsteigend beginnen
+    sortKey.value = col;
+    sortOrder.value = 1;
   }
-}
-
-
+};
 </script>
 
 <style scoped>
@@ -465,26 +478,18 @@ span.red {
   overflow-y: scroll;
   overflow-x: hidden;
 }
+
+.sortable-header {
+  .arrow {
+    opacity: 0; 
+    transition: opacity 0.2s;
+    cursor: pointer;
+  }
+
+  &:hover .arrow {
+    opacity: 1; 
+  }
+}
+
 </style>
 
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar
-// kommentar

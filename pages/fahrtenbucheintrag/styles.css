@@ -57,11 +57,6 @@ button:hover, button:active {
   color: grey;
 }
 
-.green {
-  background-color: #1fd51c;
-  color: white;
-  border: #90bee3;
-}
 
 input, select, button {
   border-radius: 4px;
@@ -138,12 +133,13 @@ input[type="checkbox"] {
 }
 
 /* Beschreibung Eingabefeld mit drei zeilen und zeilenumbrüchen */
-span span.description {
+.description{
   height: 3.6em;
   font-size: 1.3em;
+  width: 97%;
   border-radius: 4px;
   padding: 5px;
-  margin: 4%;
+  margin: 4px;
   border: 1px solid grey;
   resize: vertical; /* allow vertical resizing */
 }
@@ -237,4 +233,15 @@ input.km, select.km, button.km {
   pointer-events: none;
   text-align: right;
   margin-right: 10px;
+}
+
+#id_abschicken {
+  font-size: 2em;
+  background-color: #1fd51c;
+  color: white;
+  border: #90bee3;
+}
+
+#id_abschicken.disabled {
+  display: none;
 }

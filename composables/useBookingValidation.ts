@@ -38,8 +38,8 @@ export function useBookingValidation() {
     let retString = ''
 
     retString += kmWithinRange ? '' : 'km not within range<br>'
-    retString += bk.liters <= 0 ? 'Bitte Liter angeben<br>' : ''
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
+    retString += !bk.liters || bk.liters <= 0 ? 'Bitte Liter angeben<br>' : ''
+    retString += !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
 
     if (vollgetankt) {
@@ -64,7 +64,7 @@ export function useBookingValidation() {
   const validateSonstiges = (bk: HauptbuchBooking): ValidationResult => {
     let retString = ''
 
-    retString += bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
+    retString +=  !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
     retString += bk.account === '' ? 'Konto nicht ausgewählt<br>' : ''
     retString += bk.description === '' ? 'Bitte Beschreibung angeben<br>' : ''
 

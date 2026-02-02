@@ -1,5 +1,5 @@
 <template lang="pug">
-form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) lökö
+form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug?
   h2 Fahrtenbucheintrag \#{{ hauptbuch.bookings.length }} 
   div(v-if="!hostname().includes('konfi') && DEBUG") 
@@ -53,7 +53,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) lökö
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
   // Submit Button
   button#id_abschicken( 
-    :class="{'green': validationResult.ok }"  
+    :class="{ 'green': validationResult.ok, 'disabled': !validationResult.ok }"
     style="width=100%" 
     type="submit") ins Fahrtenbuch eintragen
 </template>
