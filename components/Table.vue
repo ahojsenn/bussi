@@ -1,7 +1,7 @@
 <template lang="pug">
-div
+div 
   div(v-if="tableColumns.length > 0 || myFilters.length > 0")
-    div
+    div 
     b {{ konto }}: {{ displayRows.length }} Einträge on page {{ pageNr == -1 ? 'all' : pageNr }}
       br
       div(v-if="nrOfPages>1")
@@ -38,11 +38,17 @@ div
     table
       thead
         th(v-for="col,i in tableColumns" class="sortable-header")
-          div(@click.exact="sortArray(col)") {{ col }} nn
+          div(@click.exact="sortArray(col)")
+            span {{ col }}
+            span(v-if="sortKey == col && sortOrder > 0") ↓
+            span(v-if="sortKey == col && sortOrder < 0") ↑
             <br />
-            span(v-if="'kmSinceLastEntry amount haben soll'.indexOf(col) > -1")  {{ sumRow(col) }}  
+            span(v-if="['kmSinceLastEntry', 'amount', 'haben', 'soll'].includes(col)")  {{ sumRow(col) }}  
             span(v-else) &nbsp;
-            span.arrow ↓↓↓
+            // Arrows for sort indication
+            // ↓↓↓ by default unless sorted ascending && sortKey == col
+            span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑↑
+            span.arrow(v-else) ↓↓↓
              
     
       tbody
@@ -97,21 +103,33 @@ const props = defineProps({
   showSum: Boolean,
 })
 
-const sortKey = ref('date'); // Standard-Sortierung
+const sortKey = ref('nr'); // Standard-Sortierung
 const sortOrder = ref(1); // 1 = aufsteigend, -1 = absteigend
 const myFilters = ref<Array<Filter>>([])
 const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);
 const filteredRows = computed(() => executeFilter(allData.value, myFilters.value));
 const sortedRows = computed(() => {
+  logd("Table.sortedRows: sorting by ", sortKey.value, "order", sortOrder.value);
   const data = [...filteredRows.value]; 
   return data.sort((a, b) => {
-    // Zugriff auf .value innerhalb von computed ist wichtig!
-    const valA = a[sortKey.value];
-    const valB = b[sortKey.value];
+    let valA = String(a[sortKey.value] || "");
+    let valB = String(b[sortKey.value] || "");
+    
+    // HTML-Tags entfernen (regex), um nur den angezeigten Text zu bekommen
+    const textA = valA.replace(/<[^>]*>/g, "").toLowerCase().trim();
+    const textB = valB.replace(/<[^>]*>/g, "").toLowerCase().trim();
 
-    if (valA < valB) return -1 * sortOrder.value;
-    if (valA > valB) return 1 * sortOrder.value;
+    // Numerischer Vergleich, falls der Text eine Zahl ist
+    const numA = parseFloat(textA);
+    const numB = parseFloat(textB);
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return (numA - numB) * sortOrder.value;
+    }
+
+    // Normaler Textvergleich
+    if (textA < textB) return -1 * sortOrder.value;
+    if (textA > textB) return 1 * sortOrder.value;
     return 0;
   });
 });
@@ -119,7 +137,7 @@ const displayRows = computed(() => {
   if (pageNr.value === -1) return sortedRows.value; // "Alle anzeigen" Modus
   const start = (pageNr.value - 1) * ROWSPERPAGE;
   const end = start + ROWSPERPAGE;
-  return filteredRows.value.slice(start, end);
+  return sortedRows.value.slice(start, end);
 });
 let pageNr = ref(1);
 const paginatedRows = computed(() => {
@@ -324,15 +342,16 @@ const executeFilter =  (d: any[], filters: Filter[]): any[] =>  {
 };
 
 const sortArray = (col: string) => {
-  logd("Table.sortArray: sorting by ", col);
+  // 1. Richtung umschalten (Toggle)
   if (sortKey.value === col) {
-    // Wenn man auf die gleiche Spalte klickt: Richtung umkehren
     sortOrder.value = sortOrder.value * -1;
   } else {
-    // Wenn neue Spalte: Auf dieser Spalte aufsteigend beginnen
     sortKey.value = col;
     sortOrder.value = 1;
   }
+
+  // Optional: Seite auf 1 zurücksetzen, wenn man sortiert
+  pageNr.value = 1;
 };
 </script>
 
