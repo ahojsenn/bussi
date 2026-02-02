@@ -42,19 +42,18 @@ div
       thead
         th(v-for="col,i in tableColumns" )
           div(@click.exact="sortArray(col)" class="sortable-header")
-            span {{ col }}
+            span(v-html="formatCamelCase(col)") 
             span(v-if="sortKey == col && sortOrder > 0") ↓
             span(v-if="sortKey == col && sortOrder < 0") ↑
-            <br />
             span(v-if="['kmSinceLastEntry', 'amount', 'haben', 'soll'].includes(col)")  {{ sumRow(col) }}  
             span(v-else) &nbsp;
             // Arrows for sort indication
-            span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑↑
-            span.arrow(v-else) ↓↓↓
+            span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑
+            span.arrow(v-else) ↓↓
           button(
             @click="toggleAggregation(col)"
             :class="aggregateKey === col ? 'active' : ''"
-            ) <==>
+            ) <=>
              
     
       tbody
@@ -147,7 +146,7 @@ const aggregatedRows = computed(() => {
   logd("Table.aggregatedRows: aggregating by ", aggregateKey.value);  
   const data = sortedRows.value;
   if (!aggregateKey.value) return data;
-  
+
   const grouped: { [key: string]: any[] } = {};
   data.forEach((row) => {
     const key = row[aggregateKey.value] || "undefined";
@@ -394,6 +393,9 @@ const sortArray = (col: string) => {
   // Optional: Seite auf 1 zurücksetzen, wenn man sortiert
   pageNr.value = 1;
 };
+
+const formatCamelCase = (text :string) => text.replace(/([a-z])([A-Z])/g, '$1<wbr>$2');
+
 </script>
 
 <style scoped>
@@ -422,6 +424,12 @@ button:disabled {
   border: none;
   color: #3c3c3b;
 }
+
+span {
+  display: inline-block; /* Wichtig, damit Width/Wrap greifen */
+  word-break: break-word; /* Ältere Browser */
+  overflow-wrap: anywhere; /* Moderne Browser */
+}  
 span.filter {
   color: #f5e14d;
 }
@@ -474,6 +482,7 @@ th {
   background-repeat: no-repeat;
   background-position: 3% center;
   border-radius: 6px;
+  vertical-align: bottom;
 }
 th a {
   /*color: lightgrey;*/
@@ -485,8 +494,8 @@ th {
   padding: 2px 5px 2px 5px;
   border: 1px solid #ccc;
   text-align: left;
-  vertical-align: text-top;
   border-radius: 6px;
+  vertical-align: bottom;
 }
 
 td span {
