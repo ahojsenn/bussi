@@ -59,17 +59,20 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         '<a target="_blank" href='
         + this._url + '#range=' + (rnr + 2) + ':' + (rnr + 2) + '>' + s + '</a>'
 
+
+      const sToZahl = (s: string): number => parseFloat(s.replace('€', '').replace(/\./g, '').replace(',', '.').trim()) || 0
+
       this.bookings = data1.map((b: any) => new HauptbuchBooking(
         linkTo(b.rowNr, b.rowNr),
         b["Datum"],
         b["Wer"],
-        parseInt(b["km (Endstand)"].replace('.', '')) || 0,
-        parseInt(b["km"].replace('.', '')) || 0,
-        parseInt(b["km seit letzter Tankung"].replace('.', '')) || 0,
-        parseFloat(b["Liter getankt"].replace(',', '.')) || 0,
-        parseFloat(b["Verbrauch/l"].replace(',', '.')) || 0,
-        parseFloat(b["Benzinpreis"].replace(',', '.').replace('€', '').trim()) || 0,
-        parseFloat(b["Betrag"].replace(',', '.').replace('€', '').trim()) || 0,
+        sToZahl(b["km (Endstand)"]),
+        sToZahl(b["km"]),
+        sToZahl(b["km seit letzter Tankung"]),
+        sToZahl(b["Liter getankt"]),
+        sToZahl(b["Verbrauch/l"]),
+        sToZahl(b["Benzinpreis"]),
+        sToZahl(b["Betrag"]),
         b["Was"],
         b["V-Schlüssel"],
         b.rowNr = b.rowNr

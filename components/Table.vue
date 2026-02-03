@@ -53,7 +53,7 @@ div
           button(
             @click="toggleAggregation(col)"
             :class="aggregateKey === col ? 'active' : ''"
-            ) <=>
+            ) <==>
              
     
       tbody

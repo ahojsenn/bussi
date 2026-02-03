@@ -43,14 +43,15 @@ export function useBookingValidation() {
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
 
     if (vollgetankt) {
-      retString += bk.consumption > CONSUMPTION_TOLERANCE.high * averageConsumption
-        ? 'Verbrauch zu hoch, bitte prüfen<br>'
+      retString += bk.consumption < CONSUMPTION_TOLERANCE.low * averageConsumption
+        ? 'Verbrauch zu niedrig, bitte prüfen<br>'
         : ''
     }
 
-    retString += bk.consumption < CONSUMPTION_TOLERANCE.low * averageConsumption
-      ? 'Verbrauch zu niedrig, bitte prüfen<br>'
+    retString += bk.consumption > CONSUMPTION_TOLERANCE.high * averageConsumption
+      ? 'Verbrauch zu hoch, bitte prüfen<br>'
       : ''
+
     retString += bk.fuelPriceInEuro < FUEL_PRICE_LIMITS.min
       ? 'Kraftstoffpreis zu niedrig, bitte prüfen<br>'
       : ''
@@ -64,7 +65,7 @@ export function useBookingValidation() {
   const validateSonstiges = (bk: HauptbuchBooking): ValidationResult => {
     let retString = ''
 
-    retString +=  !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
+    retString += !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
     retString += bk.account === '' ? 'Konto nicht ausgewählt<br>' : ''
     retString += bk.description === '' ? 'Bitte Beschreibung angeben<br>' : ''
 
