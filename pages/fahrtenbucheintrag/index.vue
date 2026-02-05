@@ -88,8 +88,8 @@ const hostname = () => {
     return window.location.hostname
   }
 }
-
-const today = new Date().toISOString().slice(0, 16)
+const n_ow = new Date()
+const now = new Date(+n_ow - n_ow.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const lastbk = ref(hauptbuch.bookings[hauptbuch.bookings.length - 1])
 
 const consumption = useFuelConsumption(bookingsRef)
@@ -98,7 +98,7 @@ const { isPositiveNumber, validateFahrt, validateTanken, validateSonstiges } = v
 
 const initialBooking = new HauptbuchBooking(
   (hauptbuch.bookings.length + 1).toString(),
-  today,
+  now,
   '',
   lastbk.value.km,
   0,
@@ -188,7 +188,7 @@ const onSubmit = async () => {
       hauptbuch.bookings.length + 1,
       lastbk.value.km,
       kmSinceLastFuelFill,
-      today
+      now
     )
     km.reset(lastbk.value.km)
   }
