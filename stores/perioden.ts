@@ -1,8 +1,8 @@
-import { Account } from './../mixins/types';
+import { Account } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
-import { URL } from '../mixins/url'
-import logd from '../mixins/logDebug'
+import { URL } from '../utils/url'
+import logd from '../utils/logDebug'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {

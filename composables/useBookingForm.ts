@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { HauptbuchBooking } from '~/mixins/types'
+import { HauptbuchBooking } from '~/types'
 
 export type BookingType = 'Fahrt' | 'Tanken' | 'Sonstiges'
 

@@ -7,7 +7,7 @@ form#my-global
   
 <script setup lang="ts">
 import { usePeriodenStore } from '@/stores/perioden'
-import logd from '../mixins/logDebug';
+import logd from '../utils/logDebug';
 const periods = usePeriodenStore()
 await periods.loadDataFromGoogle()
 const years = periods.listOfPeriods

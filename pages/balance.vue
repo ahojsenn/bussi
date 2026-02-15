@@ -51,16 +51,16 @@ div
 
 <script setup lang="ts">
 import { useStakeholderStore } from '../stores/stakeholder'
-import {Account, BussiAccountSystem, HauptbuchBooking} from '../mixins/types'
+import {Account, BussiAccountSystem, HauptbuchBooking} from '../types'
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import {usePeriodenStore} from '../stores/perioden'
-import { Booking } from '../mixins/types'
-import {book} from '../mixins/book'
-import logd from '../mixins/logDebug';
+import { Booking } from '../types'
+import {book} from '../composables/book'
+import logd from '../utils/logDebug';
 import { useAccountsStore } from '../stores/accounts'
 import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
-import {bookEverythingtoBS} from '../mixins/bookEverythingtoBS'
-import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../mixins/bookingHelpers';
+import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
+import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../composables/bookingHelpers';
 
 const toRender =  reactive({
   bookings: [] as Array<Booking>,

@@ -9,8 +9,8 @@ div accounts
 <script setup lang="ts">
 import { useStakeholderStore } from '../stores/stakeholder';
 import { useAccountsStore } from '../stores/accounts'
-import logd from '../mixins/logDebug'
-import { BussiAccountSystem } from '../mixins/types';
+import logd from '../utils/logDebug'
+import { BussiAccountSystem } from '../types';
 
 const aStore = useAccountsStore()
 await aStore.loadDataFromGoogle()

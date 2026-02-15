@@ -1,6 +1,6 @@
 import { computed } from 'vue'
-import { HauptbuchBooking } from '~/mixins/types'
-import { bookingIsTanken } from '~/mixins/bookingHelpers'
+import { HauptbuchBooking } from '~/types'
+import { bookingIsTanken } from '~/composables/bookingHelpers'
 
 export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {
   const allLiters = computed(() =>

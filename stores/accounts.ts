@@ -1,4 +1,4 @@
-import { Account } from './../mixins/types';
+import { Account } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 

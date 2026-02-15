@@ -8,8 +8,8 @@ div Das Bussi Fahrtenbuch
 <script setup lang="ts">
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { usePeriodenStore } from '@/stores/perioden'
-import { checkBookingSyntax } from '~/mixins/checkBookingSyntax';
-import logd from '../mixins/logDebug';
+import { checkBookingSyntax } from '~/composables/checkBookingSyntax';
+import logd from '../utils/logDebug';
 import {  onMounted,  getCurrentInstance} from 'vue'
 const hauptbuch = reactive(useHauptbuchStore())
 const konto = "Hauptbuch"

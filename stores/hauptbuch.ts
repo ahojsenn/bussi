@@ -1,9 +1,9 @@
-import { HauptbuchBooking } from './../mixins/types';
+import { HauptbuchBooking } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
-import logd from '../mixins/logDebug'
-import { URL } from '../mixins/url'
-import * as bookingHelpers from '../mixins/bookingHelpers'
+import logd from '../utils/logDebug'
+import { URL } from '../utils/url'
+import * as bookingHelpers from '../composables/bookingHelpers'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {
@@ -18,6 +18,8 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   console.log("hauptbuch.getDataFromGoogle: ", ret)
   return ret
 }
+
+// https://docs.google.com/spreadsheets/d/1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M/edit?gid=1543409034#gid=1543409034
 
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GEDIT = '/edit#gid=1543409034'

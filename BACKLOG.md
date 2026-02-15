@@ -1,5 +1,7 @@
 # my Backlog
-
+- Tankvorgänge: nach jedem Tankvorgang sollte der Salde des Tanken Kontos auf fast Null sein. Odeer es surde nicht vollgertankt...
+  - nicht vololgetaknt Erkennung in "bookEverything..." einbauen
+  - wie viele Liter sind noch im Tank? 
 - Gäbe es eine DSL für die Bilanzierung?
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
 

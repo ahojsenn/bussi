@@ -1,4 +1,4 @@
-import type { HauptbuchBooking } from './types';
+import type { HauptbuchBooking } from '../types';
 import { useStakeholderStore } from '../stores/stakeholder'
 
 function isValidDate(dateString: string): boolean {

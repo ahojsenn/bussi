@@ -1,9 +1,9 @@
 import { book } from './book';
-import logd from './logDebug';
-import { Booking, BussiAccountSystem, HauptbuchBooking } from "./types"
+import logd from '../utils/logDebug';
+import { Booking, BussiAccountSystem, HauptbuchBooking } from "../types"
 import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
-import { euroToNumber } from './euroToNumber';
+import { euroToNumber } from '../utils/euroToNumber';
 
 const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +(((b.liters || 0) + "").replace('l', '').trim().replace(',', '.')) : 0
 

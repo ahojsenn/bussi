@@ -86,7 +86,7 @@ div
 </template>
 
 <script setup lang="ts">
-import logd from "../mixins/logDebug"
+import logd from "../utils/logDebug"
 import { watch, ref, onMounted } from "vue"
 
 interface Filter {

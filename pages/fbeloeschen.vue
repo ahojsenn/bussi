@@ -13,8 +13,8 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 
 <script setup lang="ts">
 import { useHauptbuchStore } from '../stores/hauptbuch'
-import { HauptbuchBooking } from '../mixins/types'
-import logd from '~/mixins/logDebug'
+import { HauptbuchBooking } from '../types'
+import logd from '~/utils/logDebug'
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
 

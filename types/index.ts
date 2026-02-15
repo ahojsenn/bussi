@@ -1,4 +1,4 @@
-import logd from "./logDebug"
+import logd from "../utils/logDebug"
 
 export class HauptbuchBooking {
   nr: string

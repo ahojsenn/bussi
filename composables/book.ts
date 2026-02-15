@@ -1,5 +1,5 @@
-import logd from './logDebug'
-import { Account, Booking } from './types'
+import logd from '../utils/logDebug'
+import { Account, Booking } from '../types'
 
 export const book = (bk: Booking, from: Account, to: Account) => {
   if (bk === null) return

@@ -5,7 +5,7 @@ div stakeholder
 
 <script setup lang="ts">
 import { useStakeholderStore } from '../stores/stakeholder'
-import logd from '../mixins/logDebug'
+import logd from '../utils/logDebug'
 
 const kstore = useStakeholderStore()
 await kstore.loadStakeholder()
