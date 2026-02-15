@@ -23,7 +23,7 @@ const getDataFromGoogle = (url: string): Promise<any> => {
 
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GEDIT = '/edit#gid=1543409034'
-const GSN_sheet = '&sheet=FahrtenbuchV-'
+const GSN_sheet = '&sheet=Fahrtenbuch'
 const GdataUrl = URL + GMAGIC + GSN_sheet
 
 export const useHauptbuchStore = defineStore('hauptbuch', {
