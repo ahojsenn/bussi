@@ -33,9 +33,9 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
     access_token: ""
   }),
   actions: {
-    async loadBussiData(period?: string) {
+    async loadHauptbuch(period?: string) {
 
-      logd("hauptbuch.loadBussiData: ", period, GdataUrl)
+      logd("hauptbuch.loadHauptbuch: ", period, GdataUrl)
       const gdata = await getDataFromGoogle(GdataUrl)
       // console.log("hauptbuch.loadBussiData: ", period, gdata.data.length, gdata.data)
 
@@ -127,6 +127,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
     }
   },
   getters: {
-    url: (state) => state._url
+    url: (state) => state._url,
+    hauptbuch: (state) => state.bookings,
   }
 })

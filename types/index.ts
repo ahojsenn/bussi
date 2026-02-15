@@ -90,6 +90,20 @@ export class Booking {
   }
 }
 
+// definiere den typ Raw-account, damit die Daten aus google korrekt typisiert werden können
+export type RawAccount = {
+  Name: string
+  Bezeichnung: string
+  Anfangsbestand: string
+  Einheit: string
+  Kontotyp: "T-Konto" | "Listenkonto"
+}
+
+// definiere den typ RawStakeholder, damit die Daten aus google korrekt typisiert werden können
+export type RawStakeholder = {
+  Name: string
+  Verteilung: string
+}
 
 export class Account {
   name: string
@@ -128,6 +142,7 @@ export class Account {
     return Math.round(100 * +this.bookings.filter(b => filterFunc(b)).reduce((acc, cv) => acc += cv.haben, 0)) / 100
   }
 }
+
 export class BussiAccountSystem {
   accounts = [] as Array<Account>
   hauptbuchBookings = [] as Array<HauptbuchBooking>

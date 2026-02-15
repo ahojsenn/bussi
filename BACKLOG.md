@@ -5,6 +5,7 @@
 - Gäbe es eine DSL für die Bilanzierung?
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
 - Initialbuchungen am Anfang einbuchen
+- check again if splits.length = nSplits is correctly done in every booking
 
 
 

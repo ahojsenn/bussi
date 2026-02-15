@@ -268,7 +268,7 @@ export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: 
       const isNullbuchung = (euroToNumber(booking.amount) === 0) && +(booking.kmSinceLastEntry || "0") === 0
       if (isNullbuchung) {
         bookingWasUsed = true
-        logd("Nullbuchung ignoriert: ", booking, " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
+        // logd("Nullbuchung ignoriert: ", booking, " " + " km:" + booking.kmSinceLastEntry + " €:" + booking.amount)
       }
 
 

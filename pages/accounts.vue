@@ -2,26 +2,35 @@
 div accounts
   Table(:selectedBookingsToRender="aStore.accounts")
   div {{ accountNames }}
-  div {{ stakeholderNames }}
+  div {{ shStore.stakeholderListe }}
+  div {{ as.accounts }} lkjlk
   Table(:selectedBookingsToRender="as.accounts")
 </template>
 
 <script setup lang="ts">
 import { useStakeholderStore } from '../stores/stakeholder';
 import { useAccountsStore } from '../stores/accounts'
-import logd from '../utils/logDebug'
-import { BussiAccountSystem } from '../types';
+import { useAccountSystemStore } from '../stores/accountSystem';
+import { useHauptbuchStore } from '../stores/hauptbuch';
 
 const aStore = useAccountsStore()
 await aStore.loadDataFromGoogle()
 const accountNames = aStore.accountNames
 
-
 const shStore = useStakeholderStore()
 await shStore.loadStakeholder()
-const stakeholderNames = shStore.stakeholderListe
 
-const as = new BussiAccountSystem(stakeholderNames, accountNames)
+const hauptbuchStore = useHauptbuchStore()
+await hauptbuchStore.loadHauptbuch()
+const hauptbuch = hauptbuchStore.hauptbuch
+
+
+const bStore = useAccountSystemStore()
+//const accountSystem = await bStore.accountSystem()
+await bStore.initAS()
+const as = bStore.accountSystem 
+
+// const as = new accountSystem(stakeholderNames, accountNames)
 </script>
 
 

@@ -11,5 +11,3 @@ const kstore = useStakeholderStore()
 await kstore.loadStakeholder()
 logd("accounts: kstore loaded: ", kstore) 
 </script>
-
-

@@ -17,7 +17,7 @@ const vueInstance = getCurrentInstance()
 let errors = reactive({text: ""})
   
 const loadHauptbuch = async () => {
-  await hauptbuch.loadBussiData()
+  await hauptbuch.loadHauptbuch()
   //  hier könnte ich noch einen Filter auf doe in YearSwitch gewählte Periode machen
   if (vueInstance && vueInstance.proxy) await vueInstance.proxy.$forceUpdate()
 }
@@ -26,7 +26,7 @@ onMounted(async () => await loadHauptbuch())
 watch(
   // reload the whole dammned thing
   usePeriodenStore().$state , async (previous, current) => {
-    await hauptbuch.loadBussiData(usePeriodenStore().currentPeriod)
+    await hauptbuch.loadHauptbuch(usePeriodenStore().currentPeriod)
     if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
     logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", hauptbuch.bookings.length)
 })

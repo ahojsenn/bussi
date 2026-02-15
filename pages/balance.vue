@@ -121,9 +121,9 @@ watch(
   perioden.$state , async (previous, current) => {
     //logd('bilanz.watch.perioden changed', perioden.currentPeriod )
     // empty the bs object
-    await hauptbuch.loadBussiData(perioden.currentPeriod)
+    await hauptbuch.loadHauptbuch(perioden.currentPeriod)
     allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-    bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
+    //bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
     bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
     logd("in balance.watch(): ", bs)
     // bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)

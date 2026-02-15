@@ -1,4 +1,4 @@
-import { Account } from './../types';
+import { Account, type RawAccount } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 
@@ -14,14 +14,6 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   })
   //  console.log("hauptbuch.getDataFromGoogle: ", ret)
   return ret
-}
-
-// definiere den typ Raw-account, damit die Daten aus google korrekt typisiert werden können
-type RawAccount = {
-  Name: string
-  Bezeichnung: string
-  Anfangsbestand: string
-  Einheit: string
 }
 
 const GURL = 'https://docs.google.com/spreadsheets/d/'
