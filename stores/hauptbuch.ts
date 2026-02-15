@@ -79,7 +79,8 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       ))
       // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
     },
-    async createBooking(b: HauptbuchBooking) {
+    async createBooking(b: HauptbuchBooking): Promise<Response> {
+      let response = new Response()
       // I would like to append a row to the google spreadsheet
       logd("hauptbuch.createBooking: ", b)
       const values = b.toSpreadsheetRow()
@@ -89,33 +90,38 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       try {
         logd("Hauptbuch.createBooking: trying to send POST request to bussi_server...")
         const url = "/adddata"
-        const response = await fetch(url, {
+        response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ values })
         })
+        logd("Hauptbuch.createBooking: response=", await response.clone())
       } catch (error) {
         console.error('Error sending request to bussiserver', error);
       }
+      return await response
     },
-    async deleteBooking(b: HauptbuchBooking) {
+    async deleteBooking(b: HauptbuchBooking): Promise<Response> {
+      let response = new Response()
       logd("hauptbuch.deleteBooking: ", b)
       const values = b.toSpreadsheetRow()
       try {
-        logd("Hauptbuch.createBooking: trying to send POST request to bussi_server...")
+        logd("Hauptbuch.deleteBooking: trying to send POST request to bussi_server...")
         const url = "/deletebooking"
-        const response = await fetch(url, {
+        response = await fetch(url, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ values })
         })
+        logd("Hauptbuch.deleteBooking: response=", await response.clone())
       } catch (error) {
         console.error('Error sending request to bussiserver', error);
       }
+      return await response
     }
   },
   getters: {

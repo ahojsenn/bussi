@@ -68,8 +68,17 @@ const toRender =  reactive({
 })
 
 const selectToRender = (account: Account) => {
-  const bkngs = account.bookings
-  toRender.bookings.splice(0, toRender.bookings.length)
+  let cumulative = 0;
+  const bkngs = account.bookings.map(booking => {
+    cumulative += booking.haben - booking.soll;
+    return {
+      ...booking,
+      saldo: Math.round(cumulative * 100) / 100
+    };
+  });
+
+  // toRender.bookings.splice(0, toRender.bookings.length)
+  toRender.bookings = [] // clear the array reactively  
   toRender.bookings.push(...bkngs)
   toRender.name = account.owner + " " + account.name
 }

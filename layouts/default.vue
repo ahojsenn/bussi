@@ -8,9 +8,9 @@ div.background
 <style>
 @font-face {
  font-family: 'supermarker'; /* Gewünschter Name */
- src:  url('/SupermarkerVARTrial.woff2') format('woff2'), /* SupermarkerVARTrial.woff2 oder SupermarkerVARTrial.ttf */
-       url('/SupermarkerVARTrial.woff') format('woff'), /* SupermarkerVARTrial.woff oder SupermarkerVARTrial.ttf */
-       url('/SupermarkerVARTrial.ttf') format('truetype'); /* SupermarkerVARTrial.ttf */
+ src:  url('/fonts/SupermarkerVARTrial.woff2') format('woff2'), /* SupermarkerVARTrial.woff2 oder SupermarkerVARTrial.ttf */
+       url('/fonts/SupermarkerVARTrial.woff') format('woff'), /* SupermarkerVARTrial.woff oder SupermarkerVARTrial.ttf */
+       url('/fonts/SupermarkerVARTrial.ttf') format('truetype'); /* SupermarkerVARTrial.ttf */
 
   /* background black */
   background-color: #000;

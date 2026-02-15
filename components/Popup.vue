@@ -1,34 +1,25 @@
 <template lang="pug">
-div.popup-overlay(v-if="visible" @click.self="close")
+div.popup-overlay(v-if="modelValue.show" @click.self="close")
   div.popup
     button.close-btn(@click="close") ×
-    h2 hi there! 
-    p {{modelValue.text}} ...
-    button(@click="close") Close
+    h2 Status
+    p {{ modelValue.text }}
+    button(@click="close") Schließen
 </template>
 
-<script>
-import logd from '~/mixins/logDebug';
-
-export default {
-  name: 'Popup',
-  props: {
-    modelValue: { // v-model binding
-      type: Object, // show, text
-      required: true
-    },
-  },
-  computed: {
-    visible() {
-      return this.modelValue.show;
-    }
-  },
-  methods: {
-    close() {
-      this.modelValue.show = false
-    }
+<script setup>
+const props = defineProps({
+  modelValue: {
+    type: Object,
+    required: true
   }
-};
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const close = () => {
+  emit('update:modelValue', { ...props.modelValue, show: false })
+}
 </script>
 
 <style scoped>

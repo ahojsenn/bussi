@@ -111,7 +111,7 @@ const props = defineProps({
 const aggregateKey = ref("")
 const toggleAggregation = (str: string) => aggregateKey.value = aggregateKey.value === str ? "" : str
 const sortKey = ref('nr'); // Standard-Sortierung
-const sortOrder = ref(1); // 1 = aufsteigend, -1 = absteigend
+const sortOrder = ref(-1); // 1 = aufsteigend, -1 = absteigend
 const myFilters = ref<Array<Filter>>([])
 const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);

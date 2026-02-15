@@ -190,8 +190,8 @@ input.km, select.km, button.km {
 
 @font-face {
   font-family: 'Digital-7';
-  src: url('/digital-7.woff') format('woff'),
-       url('/digital-7.ttf') format('truetype');
+  src: url('/fotns/digital-7.woff') format('woff'),
+       url('/fonts/digital-7.ttf') format('truetype');
 }
 
 /* Das eigentliche Input-Feld */

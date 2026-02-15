@@ -56,6 +56,9 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     :class="{ 'green': validationResult.ok, 'disabled': !validationResult.ok }"
     style="width=100%" 
     type="submit") ins Fahrtenbuch eintragen
+
+  // Das Popup einbinden
+  Popup(v-model="popupStatus")
 </template>
 
 
@@ -75,6 +78,12 @@ import { useFuelConsumption } from '~/composables/useFuelConsumption'
 import BookingTypeSelector from '~/components/fahrtenbucheintrag/BookingTypeSelector.vue'
 import KilometerDisplay from '~/components/fahrtenbucheintrag/KilometerDisplay.vue'
 import FuelInput from '~/components/fahrtenbucheintrag/FuelInput.vue'
+
+// Der Status für dein neues Popup
+const popupStatus = ref({
+  show: false,
+  text: ''
+})
 
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
@@ -176,7 +185,22 @@ const onSubmit = async () => {
   
   if (validationResult.value.ok) {
     lastSubmitted.value += thisbk.value.description + "<br>" + JSON.stringify(thisbk.value)
-    await hauptbuch.createBooking(thisbk.value)
+    const response = await hauptbuch.createBooking(thisbk.value)
+    // show a result popup on response
+    if (response.ok) {
+    // Falls der Go-Server doch Text schickt, nutzen wir .text()
+    const msg = await response.text() 
+    popupStatus.value = {
+      show: true,
+      text: `Erfolgreich gespeichert: ${msg}`
+      }
+    } else {
+    popupStatus.value = {
+      show: true,
+      text: `Fehler: ${response.status} ${response.statusText}`
+      }
+    }
+
     await hauptbuch.loadBussiData()
     
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length - 1]
@@ -193,6 +217,7 @@ const onSubmit = async () => {
     km.reset(lastbk.value.km)
   }
 }
+
 </script>
 
 <style scoped src="./styles.css"></style>

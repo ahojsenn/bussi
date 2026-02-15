@@ -1,12 +1,14 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" ) 
-  Popup( modelValue="")
   h3.red Fahrtenbucheintrag löschen {{ hauptbuch.bookings.length }}  
 
   div.hilight(v-html="pretty(lastbk)")
 
   button( :class="{'green': validation(lastbk).ok }"  style="width=100%" type="submit") Eintrag löschen
   div {{validation(lastbk).result}}
+
+    // Das Popup einbinden
+  Popup(v-model="popupStatus")
 </template>
 
 <script setup lang="ts">
@@ -15,6 +17,12 @@ import { HauptbuchBooking } from '../mixins/types'
 import logd from '~/mixins/logDebug'
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
+
+// Der Status für dein neues Popup
+const popupStatus = ref({
+  show: false,
+  text: ''
+})
 
 const pretty = (o: Object) :string => {
   const searchRegExp = /[{,\",}]/g;
@@ -40,7 +48,20 @@ const onSubmit = async () => {
   const vres = validation(lastbk.value)
   if (vres.ok) {
 
-    await hauptbuch.deleteBooking(lastbk.value)
+    const response = await hauptbuch.deleteBooking(lastbk.value)
+    if (response.ok) {
+    // Falls der Go-Server doch Text schickt, nutzen wir .text()
+    const msg = await response.text() 
+    popupStatus.value = {
+      show: true,
+      text: `Erfolgreich gelöscht: ${msg}`
+      }
+    } else {
+    popupStatus.value = {
+      show: true,
+      text: `Fehler: ${response.status} ${response.statusText}`
+      }
+    }
     
     // read tha hauptbuch data again to get the last booking updated
     await hauptbuch.loadBussiData()
