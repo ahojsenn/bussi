@@ -4,9 +4,13 @@
   - wie viele Liter sind noch im Tank? 
 - Gäbe es eine DSL für die Bilanzierung?
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
+- Initialbuchungen am Anfang einbuchen
+
 
 
 # done
+- Konto "Tankestand" eingeführt
+- check if splits.length = nSplits is correctly done in every booking
 - Quittung für erfolgreiche Buchung einbauen
 - Hauptbuch neueste zuerst sortieren
 - Bilanz checken

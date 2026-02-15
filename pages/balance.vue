@@ -42,7 +42,7 @@ div
                       span {{ a.Bezeichnung }} 
                     span  &nbsp;&nbsp;&nbsp;&nbsp;
                   td.inner {{ bs.findAccount(sh, a.Name).bookings.length }} 
-                  td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} €
+                  td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} {{accountStore.getEinheitByName(a.Name) || "€"}}
                   td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
                   td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
   br            

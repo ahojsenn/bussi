@@ -16,6 +16,14 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   return ret
 }
 
+// definiere den typ Raw-account, damit die Daten aus google korrekt typisiert werden können
+type RawAccount = {
+  Name: string
+  Bezeichnung: string
+  Anfangsbestand: string
+  Einheit: string
+}
+
 const GURL = 'https://docs.google.com/spreadsheets/d/'
 const GKEY = '1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M'
 const GMAGIC = '/gviz/tq?tqx=out:csv'
@@ -24,16 +32,28 @@ const GdataUrl = GURL + GKEY + GMAGIC + GSN_sheet
 
 export const useAccountsStore = defineStore('accounts', {
   state: () => ({
-    accounts: [] as Array<Account>,
+    accounts: [] as Array<RawAccount>,
   }),
   actions: {
     async loadDataFromGoogle() {
       const gdata = await getDataFromGoogle(GdataUrl)
       this.accounts = gdata.data
+      logd("accounts.loadDataFromGoogle: ", this.accounts)
     },
   },
   getters: {
     accountNames: (state) => state.accounts.map(s => s["Name"]),
-    accountBezeichnungen: (state) => state.accounts.map(s => s["Bezeichnung"])
+    accountBezeichnungen: (state) => state.accounts.map(s => s["Bezeichnung"]),
+    accountAnfangsbestand: (state) => state.accounts.map(s => s["Anfangsbestand"]),
+    // get Anfangsbestand by account name
+    getAnfangsbestandByName: (state) => (name: string) => {
+      const account = state.accounts.find(s => s["Name"] === name)
+      return account ? account["Anfangsbestand"] : null
+    },
+    // get "Einheit" by account name
+    getEinheitByName: (state) => (name: string) => {
+      const account = state.accounts.find(s => s["Name"] === name)
+      return account ? account["Einheit"] : null
+    },
   }
 })

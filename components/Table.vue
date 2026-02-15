@@ -45,7 +45,7 @@ div
             span(v-html="formatCamelCase(col)") 
             span(v-if="sortKey == col && sortOrder > 0") ↓
             span(v-if="sortKey == col && sortOrder < 0") ↑
-            span(v-if="['kmSinceLastEntry', 'amount', 'haben', 'soll'].includes(col)")  {{ sumRow(col) }}  
+            span(v-if="['kmSinceLastEntry', 'amount', 'haben', 'soll'].includes(col)") &nbsp; {{ sumRow(col) }}  
             span(v-else) &nbsp;
             // Arrows for sort indication
             span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑

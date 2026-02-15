@@ -47,7 +47,8 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div km seit letztem mal vollgetankt: {{thisbk.kmSinceLastFuelFill}}
     div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
     div km lezte Tankung: {{consumption.kmAtLastFuelfill()}}
-    div wieviel passt gerade in ten Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} 
+    div wieviel passt gerade in den Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} 
+    div Rest im Tank: {{accounts.getAnfangsbestandByName("Kraftstoff") - consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} Liter
   
   // Anzeige der Validierungsfehler
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
@@ -69,6 +70,7 @@ logd("fahrtenbucheintrag.vue setup")
 import { computed } from 'vue'
 import { useHauptbuchStore } from '../../stores/hauptbuch'
 import { useStakeholderStore } from '../../stores/stakeholder'
+import { useAccountsStore } from '~/stores/accounts'
 import { HauptbuchBooking } from '../../types'
 import logd from '~/utils/logDebug'
 import { useKilometerCounter } from '~/composables/useKilometerCounter'
@@ -90,6 +92,8 @@ await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadBussiData()
 const bookingsRef = computed(() => hauptbuch.bookings)
+const accounts = useAccountsStore()
+await accounts.loadDataFromGoogle()
 
 const DEBUG = ref(false)
 const hostname = () => {
