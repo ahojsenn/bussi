@@ -15,20 +15,10 @@ const aStore = useAccountsStore()
 await aStore.loadDataFromGoogle()
 const accountNames = aStore.accountNames
 
-const shStore = useStakeholderStore()
-await shStore.loadStakeholder()
-
-const hauptbuchStore = useHauptbuchStore()
-await hauptbuchStore.loadHauptbuch()
-const hauptbuch = hauptbuchStore.hauptbuch
-
-
 const bStore = useAccountSystemStore()
-//const accountSystem = await bStore.accountSystem()
 await bStore.initAS()
 const as = bStore.accountSystem 
 
-// const as = new accountSystem(stakeholderNames, accountNames)
 </script>
 
 

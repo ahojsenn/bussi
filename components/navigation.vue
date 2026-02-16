@@ -11,25 +11,25 @@ nav.menu
     br
     span.burgerMenuText
       NuxtLink(to="/") 
-        Nuxt home
+        NuxtPage home
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag") 
-        Nuxt( @click="uncheck('djcheckbox')") *eintragen*
+        NuxtPage( @click="uncheck('djcheckbox')") *eintragen*
     span.burgerMenuText
       NuxtLink(to="/fbeloeschen") 
-        Nuxt löschen
+        NuxtPage löschen
     span.burgerMenuText
       NuxtLink(to="/balance") 
-        Nuxt balance
+        NuxtPage balance
     span.burgerMenuText
       NuxtLink(to="/stakeholder") 
-        Nuxt stakeholder
+        NuxtPage stakeholder
     span.burgerMenuText
       NuxtLink(to="/accounts") 
-        Nuxt accounts
+        NuxtPage accounts
     span.burgerMenuText
       NuxtLink(to="/hauptbuch") 
-        Nuxt hauptbuch
+        NuxtPage hauptbuch
 </template>
 
 

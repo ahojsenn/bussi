@@ -6,7 +6,11 @@
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
 - Initialbuchungen am Anfang einbuchen
 - check again if splits.length = nSplits is correctly done in every booking
+- neues acc ountsystem verwenden
+  - in accounts --> done
+  - in balance --> not done yet
 
+- ladespinner einbauen
 
 
 # done

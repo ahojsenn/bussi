@@ -4,11 +4,12 @@ import { Booking, BussiAccountSystem, HauptbuchBooking } from "../types"
 import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
 import { euroToNumber } from '../utils/euroToNumber';
+import { type accountSystem } from '~/stores/accountSystem';
 
 const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +(((b.liters || 0) + "").replace('l', '').trim().replace(',', '.')) : 0
 
 
-export const bookEverythingtoBS = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
+export const bookEverythingtoBS = (bs: accountSystem , allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
 
   let benzinpreis = 1.71
   let verbrauch = 9.5

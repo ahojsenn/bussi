@@ -10,27 +10,36 @@ export const useAccountSystemStore = defineStore('accountSystem', {
   state: () => ({
     // Wir starten leer
     accountSystem: null as accountSystem | null,
+    isLoading: false // Hilfreich für UI-Spinner
   }),
   actions: {
     // initialize the account system with the stakeholder list, accounts and bookings
     async initAS() {
-      // Stores innerhalb der Action aufrufen ist okay!
-      const shStore = useStakeholderStore()
-      const aStore = useAccountsStore()
-      const hbStore = useHauptbuchStore()
+      logd("Initializing AccountSystem...")
+      this.isLoading = true;
+      try {
+        const shStore = useStakeholderStore();
+        const aStore = useAccountsStore();
+        const hbStore = useHauptbuchStore();
 
-      // Parallel laden spart Zeit! (Optional, aber schneller)
-      await Promise.all([
-        shStore.loadStakeholder(),
-        aStore.loadDataFromGoogle(),
-        hbStore.loadHauptbuch()
-      ])
+        await Promise.all([
+          shStore.loadStakeholder(),
+          aStore.loadDataFromGoogle(),
+          hbStore.loadHauptbuch()
+        ]);
 
-      const stakeholder = shStore.verteilungPersonen
-      const accounts = aStore.accounts
-      const hauptbuch = hbStore.hauptbuch
-
-      this.accountSystem = new accountSystem(stakeholder, accounts, hauptbuch)
+        // Erst wenn alle Daten da sind, Instanz erstellen
+        this.accountSystem = new accountSystem(
+          shStore.verteilungPersonen,
+          aStore.accounts,
+          hbStore.hauptbuch
+        );
+      } catch (error) {
+        logd("Fehler beim Initialisieren des AccountSystems:", error);
+        // Hier könntest du eine Fehlermeldung für den User setzen
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     getters: {
@@ -40,7 +49,7 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 })
 
-class accountSystem {
+export class accountSystem {
   accounts: Account[] = []
   hauptbuchBookings: HauptbuchBooking[] = []
   Errors: Account

@@ -54,10 +54,11 @@ import { useStakeholderStore } from '../stores/stakeholder'
 import {Account, BussiAccountSystem, HauptbuchBooking} from '../types'
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import {usePeriodenStore} from '../stores/perioden'
+import { useAccountsStore } from '../stores/accounts'
+import { accountSystem, useAccountSystemStore } from '../stores/accountSystem'
 import { Booking } from '../types'
 import {book} from '../composables/book'
 import logd from '../utils/logDebug';
-import { useAccountsStore } from '../stores/accounts'
 import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
 import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
 import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../composables/bookingHelpers';
@@ -90,34 +91,48 @@ const resetToRender = () => {
 // Apple + Enter to reset the Table view
 onMounted(() => {window.addEventListener('keydown', (e)=>{if (e.key === 'Enter' && e.metaKey) resetToRender()}) })
 
-
+// define the stores
 const shStore = useStakeholderStore()
-await shStore.loadStakeholder()
+const perioden = usePeriodenStore()
+const accountStore = useAccountsStore()
+const asStore = useAccountSystemStore()
+
+// load the store data
+await Promise.all([
+  await shStore.loadStakeholder(),
+  await perioden.loadDataFromGoogle(),
+  await accountStore.loadDataFromGoogle(),
+  await asStore.initAS()
+])
+
 const stakeholderNames = shStore.stakeholder.filter(e => e.Verteilung.indexOf(',') === -1).map(k => k.Verteilung)
 /* now wwe know all the stakeholders */
 
-/* load perioden and hauptbuch data */
-const perioden = usePeriodenStore()
-await perioden.loadDataFromGoogle()
-logd("balance.currentPeriod ", perioden.currentPeriod, perioden)
 const hauptbuch = useHauptbuchStore()
-/* now all Hauptbuch bookings are available */
-
-const accountStore = useAccountsStore()
-await accountStore.loadDataFromGoogle()
-
 const accountBezeichnungen = accountStore.accountBezeichnungen
 const accountNames = accountStore.accountNames
+let bs = asStore.accountSystem 
+
 let allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-let bs = reactive(new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)) 
-const ERRORS = bs.findAccount("System", "Errors") 
-/*now we have an bussi accountsystem */
+let as = reactive(new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)) 
+
+
+const ERRORS = bs?.findAccount("System", "Errors") 
+
 
 const vueInstance = getCurrentInstance()
 
 watch(
   // reload the whole dammned thing
   perioden.$state , async (previous, current) => {
+    // exit with error if bs is null
+    if (!bs) {
+      logd("Error: account system is not initialized")
+      return null
+    } else if (!ERRORS) {
+      logd("Error: Errors account not found in account system")
+      return null
+    }
     //logd('bilanz.watch.perioden changed', perioden.currentPeriod )
     // empty the bs object
     await hauptbuch.loadHauptbuch(perioden.currentPeriod)
@@ -141,7 +156,7 @@ watch(
 
 
 
-const allKm = () => bs.findAccount('Bussi', 'Kilometer').saldoY(perioden.currentPeriod)
+const allKm = () => bs?.findAccount('Bussi', 'Kilometer').saldoY(perioden.currentPeriod) || -1
 const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + liter(b), 0))
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
@@ -172,7 +187,7 @@ const balanceKonto1 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<Hauptb
 
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
-const balanceSalden = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
+const balanceSalden = (bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
   // logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
   const bussiSaldo =  bs.saldierenEuro("Bussi")
   const zeroIfNegative = (x: number) => x < 0 ? 0 : x

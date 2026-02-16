@@ -1,9 +1,27 @@
 <template lang="pug">
-div.background
+  div 
+    // Der Spinner reagiert auf den globalen Loading-State
+    LoadingSpinner(
+      :active="bStore.isLoading" 
+      message="Lade Daten..."
+    )
+  div.background
     div.foreground
       navigation
       slot 
 </template>
+
+<script setup lang="ts">
+import { useAccountSystemStore } from '~/stores/accountSystem';
+const bStore = useAccountSystemStore()
+
+// Falls der Store beim ersten Laden direkt triggern soll:
+onMounted(() => {
+  if (!bStore.accountSystem) {
+    bStore.initAS()
+  }
+})
+</script>
 
 <style>
 @font-face {
