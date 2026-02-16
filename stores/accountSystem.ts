@@ -48,7 +48,7 @@ class accountSystem {
   constructor(stakeholder: string[], accounts: RawAccount[], hbBookings: HauptbuchBooking[] = []) {
     this.hauptbuchBookings = hbBookings
     this.Errors = new Account("Errors", "system")
-    logd("accountSystem.constructor: stakeholder ", stakeholder, accounts, hbBookings)
+    // logd("accountSystem.constructor: stakeholder ", stakeholder, accounts, hbBookings)
     // this.Konto9000 = new Account("zum Ausbuchen Tankunterfüllstand am Jahresende", "Bussi")
     for (const sh of stakeholder)
       for (const acc of accounts) {

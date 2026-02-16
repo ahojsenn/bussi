@@ -16,7 +16,7 @@ import { useHauptbuchStore } from '../stores/hauptbuch'
 import { HauptbuchBooking } from '../types'
 import logd from '~/utils/logDebug'
 const hauptbuch = useHauptbuchStore()
-await hauptbuch.loadBussiData()
+await hauptbuch.loadHauptbuch()
 
 // Der Status für dein neues Popup
 const popupStatus = ref({
@@ -64,7 +64,7 @@ const onSubmit = async () => {
     }
     
     // read tha hauptbuch data again to get the last booking updated
-    await hauptbuch.loadBussiData()
+    await hauptbuch.loadHauptbuch()
     // reset lastbk and thisbk
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length-1]  
 

@@ -1,9 +1,7 @@
 <template lang="pug">
 div accounts
   Table(:selectedBookingsToRender="aStore.accounts")
-  div {{ accountNames }}
-  div {{ shStore.stakeholderListe }}
-  div {{ as.accounts }} lkjlk
+
   Table(:selectedBookingsToRender="as.accounts")
 </template>
 

@@ -65,7 +65,7 @@ import logd from '~/utils/logDebug'
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
-await hauptbuch.loadBussiData()
+await hauptbuch.loadHauptbuch()
 
 
 /* catch the event 'closePopup' from th e popup component */
@@ -203,7 +203,7 @@ const onSubmit = async () => {
     await hauptbuch.createBooking(thisbk.value)
     
     // read tha hauptbuch data again to get the last booking updated
-    await hauptbuch.loadBussiData()
+    await hauptbuch.loadHauptbuch()
     // reset lastbk and thisbk
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length-1]
     thisbk.value = new HauptbuchBooking(

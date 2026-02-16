@@ -37,7 +37,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
 
       logd("hauptbuch.loadHauptbuch: ", period, GdataUrl)
       const gdata = await getDataFromGoogle(GdataUrl)
-      // console.log("hauptbuch.loadBussiData: ", period, gdata.data.length, gdata.data)
+      // console.log("hauptbuch.loadHauptbuch: ", period, gdata.data.length, gdata.data)
 
       // add rowNr to the raw dataset before any filters are applied
       let data1 = gdata.data.map((e: any, i: number) => {
@@ -79,7 +79,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         b["V-Schlüssel"],
         b.rowNr = b.rowNr
       ))
-      // logd("hauptbuch.loadBussiData: ", period, this.bookings.length, this.bookings)
+      // logd("hauptbuch.loadHauptbuch: ", period, this.bookings.length, this.bookings)
     },
     async createBooking(b: HauptbuchBooking): Promise<Response> {
       let response = new Response()

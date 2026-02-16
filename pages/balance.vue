@@ -101,7 +101,6 @@ const perioden = usePeriodenStore()
 await perioden.loadDataFromGoogle()
 logd("balance.currentPeriod ", perioden.currentPeriod, perioden)
 const hauptbuch = useHauptbuchStore()
-// await hauptbuch.loadBussiData(perioden.currentPeriod)
 /* now all Hauptbuch bookings are available */
 
 const accountStore = useAccountsStore()

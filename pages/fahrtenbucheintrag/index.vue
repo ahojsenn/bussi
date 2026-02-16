@@ -90,7 +90,7 @@ const popupStatus = ref({
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
 const hauptbuch = useHauptbuchStore()
-await hauptbuch.loadBussiData()
+await hauptbuch.loadHauptbuch()
 const bookingsRef = computed(() => hauptbuch.bookings)
 const accounts = useAccountsStore()
 await accounts.loadDataFromGoogle()
@@ -205,7 +205,7 @@ const onSubmit = async () => {
       }
     }
 
-    await hauptbuch.loadBussiData()
+    await hauptbuch.loadHauptbuch()
     
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length - 1]
     const kmSinceLastFuelFill = vollgetankt.value 

@@ -34,7 +34,7 @@ div
       
     #popup(
           v-html="prettyJSON(currentRow)"
-          :class="{ visible: mouseIsOverCol1to5(), invisible: !(mouseIsOverCol1to5()) }"
+          :class="{ visible: mouseIsOverCol1(), invisible: !(mouseIsOverCol1()) }"
         )
       
 
@@ -62,7 +62,8 @@ div
             v-for="(col, colnr) in tableColumns",
             v-on:click.left="handleSetFilter(col, row[col], false)",
             v-on:click.right="handleSetFilter(col, row[col], true)",
-            v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",     
+            v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",  
+            v-on:mouseleave="setCurrentCol(-1)",   
             v-bind:class="{ hilight: row['Name'] == '7 ErgebnisNachSteuern', underaccountrow: row['Type'] == 'Unterkonto', greylight: row['Name'] && row['Name'].includes('Steuer:') }"
           )
             div(v-bind:class="{nowrap: 'date amount'.indexOf(col) > -1}")
@@ -243,7 +244,7 @@ onMounted(() => {
 watch(myFilters.value, () => logd("some changed", myFilters.value))
 
 const getFilters = () => myFilters.value
-const mouseIsOverCol1to5 = function () {  return currentCol < 5}
+const mouseIsOverCol1 = function () {  return currentCol == 0}
 const setCurrentCol = function (col: any) {currentCol = col}
 const setCurrentRow = function (row: any) {currentRow.value = row}
 const prettyJSON = function (value: any) {
