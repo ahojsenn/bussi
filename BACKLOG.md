@@ -14,6 +14,7 @@
 
 
 # done
+- ladespinner in bookings und accounts eingabaut
 - Konto "Tankestand" eingeführt
 - check if splits.length = nSplits is correctly done in every booking
 - Quittung für erfolgreiche Buchung einbauen

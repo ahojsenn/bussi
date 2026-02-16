@@ -1,13 +1,14 @@
 <template lang="pug">
-div stakeholder
-  Table(:selectedBookingsToRender="kstore.stakeholder")
+div
+  h1 stakeholder 
+  Table(:selectedBookingsToRender="accountSystemStore.accountSystem.stakeholder")
 </template>
 
 <script setup lang="ts">
-import { useStakeholderStore } from '../stores/stakeholder'
 import logd from '../utils/logDebug'
+import { useAccountSystemStore } from '~/stores/accountSystem'
 
-const kstore = useStakeholderStore()
-await kstore.loadStakeholder()
-logd("accounts: kstore loaded: ", kstore) 
+const accountSystemStore = useAccountSystemStore()
+await accountSystemStore.initAS()
+logd("accounts: accountSystemStore loaded: ", accountSystemStore)
 </script>

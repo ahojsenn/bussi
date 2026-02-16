@@ -30,7 +30,7 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
         // Erst wenn alle Daten da sind, Instanz erstellen
         this.accountSystem = new accountSystem(
-          shStore.verteilungPersonen,
+          shStore.stakeholder,
           aStore.accounts,
           hbStore.hauptbuch
         );
@@ -51,25 +51,27 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 export class accountSystem {
   accounts: Account[] = []
+  stakeholder: RawStakeholder[] = []
   hauptbuchBookings: HauptbuchBooking[] = []
   Errors: Account
 
-  constructor(stakeholder: string[], accounts: RawAccount[], hbBookings: HauptbuchBooking[] = []) {
+  constructor(stakeholder: RawStakeholder[], accounts: RawAccount[], hbBookings: HauptbuchBooking[] = []) {
     this.hauptbuchBookings = hbBookings
+    this.stakeholder = stakeholder
     this.Errors = new Account("Errors", "system")
     // logd("accountSystem.constructor: stakeholder ", stakeholder, accounts, hbBookings)
     // this.Konto9000 = new Account("zum Ausbuchen Tankunterfüllstand am Jahresende", "Bussi")
     for (const sh of stakeholder)
       for (const acc of accounts) {
         // skip Listenkonton for stakeholders but the first one, which is Bussi
-        if (acc.Kontotyp === "Listenkonto" && sh !== "Bussi") {
+        if (acc.Kontotyp === "Listenkonto" && sh.Name !== "Bussi") {
           // logd("accountSystem.constructor: skipping Listenkonto for ", sh);
           continue
         }
         else
           // create T-Accounts for all stakeholders, but only Listenkonten for Bussi
           // logd("accountSystem.constructor: creating account for ", sh, acc.Name),
-          this.accounts.push(new Account(acc.Name, sh))
+          this.accounts.push(new Account(acc.Name, sh.Name))
 
       }
   }
