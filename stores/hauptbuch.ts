@@ -15,9 +15,18 @@ const getDataFromGoogle = (url: string): Promise<any> => {
       error: reject,
     })
   })
-  console.log("hauptbuch.getDataFromGoogle: ", ret)
+  //logd("hauptbuch.getDataFromGoogle: ", ret)
   return ret
 }
+
+/* --- Hilfsfunktionen außerhalb des Stores (Pure Functions) --- */
+const sToZahl = (s: string): number =>
+  parseFloat(s.replace('€', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+
+const generateLink = (baseUrl: string, label: string | number, rowNr: number): string => {
+  const range = rowNr + 2;
+  return `<a target="_blank" href="${baseUrl}#range=${range}:${range}">${label}</a>`;
+};
 
 // https://docs.google.com/spreadsheets/d/1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M/edit?gid=1543409034#gid=1543409034
 
@@ -35,37 +44,42 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
   actions: {
     async loadHauptbuch(period?: string) {
 
-      logd("hauptbuch.loadHauptbuch: ", period, GdataUrl)
+      // logd("hauptbuch.loadHauptbuch: ", period, GdataUrl)
       const gdata = await getDataFromGoogle(GdataUrl)
       // console.log("hauptbuch.loadHauptbuch: ", period, gdata.data.length, gdata.data)
 
-      // add rowNr to the raw dataset before any filters are applied
-      let data1 = gdata.data.map((e: any, i: number) => {
-        e.rowNr = i
-        return e
+      // 1. Data Sanitization - add rowNr to the raw dataset before any filters are applied
+      // for Debug purposes load only the first 10 entries, if Limit <= 0, load all entries
+      const Limit = 0 // set to 0 to load all entries, or set to a positive number 
+      let rawData = gdata.data.map((row: any, index: number) => ({
+        ...row,
+        rowNr: index
+      }));
+      if (Limit > 0) {
+        rawData = rawData.slice(0, Limit);
+      }
+
+      // 2. Refined Filtering Logic
+      if (period && !isNaN(Number(period))) {
+        rawData = rawData.filter((e: any) => e["Datum"]?.startsWith(period));
+      } else if (period?.includes('bis')) {
+        const cutoffYear = period.split('bis')[1].trim();
+        rawData = rawData.filter((e: any) => e["Datum"]?.substring(0, 4) <= cutoffYear);
+      }
+
+      // 3. Mapping with a formal Constructor
+      this.bookings = rawData.map((b: any) => {
+        const rowRef = b.rowNr + 2;
+        const link = `<a target="_blank" href="${this._url}#range=${rowRef}:${rowRef}">${b.rowNr}</a>`;
+        /* create a ling in the text filed >*/
+        const linkTo = (s: string, rnr: number): string =>
+          '<a target="_blank" href='
+          + this._url + '#range=' + (rnr + 2) + ':' + (rnr + 2) + '>' + s + '</a>'
       })
 
-      // if 'period' contains 'alles bis' then filter out all rows after the given date
-      if (period && period.indexOf('bis') > 0) {
-        const date = period.split('bis')[1].trim()
-        data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) <= date)
-      }
-      else if (isNaN(Number(period))) {    // ignore the selector and do not filter, i.e. take all values
-      }
-      else {
-        data1 = data1.filter((e: any) => e["Datum"].substring(0, 4) === period)
-      }
 
-      /* create a ling in the text filed >*/
-      const linkTo = (s: string, rnr: number): string =>
-        '<a target="_blank" href='
-        + this._url + '#range=' + (rnr + 2) + ':' + (rnr + 2) + '>' + s + '</a>'
-
-
-      const sToZahl = (s: string): number => parseFloat(s.replace('€', '').replace(/\./g, '').replace(',', '.').trim()) || 0
-
-      this.bookings = data1.map((b: any) => new HauptbuchBooking(
-        linkTo(b.rowNr, b.rowNr),
+      this.bookings = rawData.map((b: any) => new HauptbuchBooking(
+        generateLink(this._url, b.rowNr, b.rowNr), // Jetzt sauber zugreifbar
         b["Datum"],
         b["Wer"],
         sToZahl(b["km (Endstand)"]),
@@ -81,6 +95,8 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       ))
       // logd("hauptbuch.loadHauptbuch: ", period, this.bookings.length, this.bookings)
     },
+
+
     async createBooking(b: HauptbuchBooking): Promise<Response> {
       let response = new Response()
       // I would like to append a row to the google spreadsheet

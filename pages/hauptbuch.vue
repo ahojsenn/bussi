@@ -15,8 +15,11 @@ import {  onMounted,  getCurrentInstance} from 'vue'
 const hauptbuch = reactive(useHauptbuchStore())
 
 const bStore = useAccountSystemStore()
-await bStore.initAS()
-const hauptbuchBookings = bStore.accountSystem?.hauptbuchBookings
+
+// only initiate the store if it is not already initiated, otherwise we would overwrite the data on every page change
+if (!bStore.accountSystem) {bStore.initAS()}
+
+const hauptbuchBookings = bStore.accountSystem?.hbStore?.hauptbuch || []
 
 
 const konto = "Hauptbuch"
@@ -24,8 +27,8 @@ const vueInstance = getCurrentInstance()
 let errors = reactive({text: ""})
 
 const bookingsToRender = computed(() => {
-  if (!bStore.accountSystem) return []
-  return filterBookingsByPeriod(bStore.accountSystem.hauptbuchBookings, usePeriodenStore().currentPeriod)
+  if (!hauptbuchBookings) return []
+  return filterBookingsByPeriod(hauptbuchBookings, usePeriodenStore().currentPeriod)
 })
 
 const filterBookingsByPeriod = (bookings: any[], period: string) :any[]  => {

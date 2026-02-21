@@ -1,24 +1,45 @@
 <template lang="pug">
-div accounts
-  Table(:selectedBookingsToRender="aStore.accounts")
+div
+  Table(:selectedBookingsToRender="accounts")
 
-  Table(:selectedBookingsToRender="as.accounts")
+  Table(:selectedBookingsToRender="asAccounts")
 </template>
 
 <script setup lang="ts">
-import { useStakeholderStore } from '../stores/stakeholder';
+import { computed } from 'vue'
 import { useAccountsStore } from '../stores/accounts'
-import { useAccountSystemStore } from '../stores/accountSystem';
-import { useHauptbuchStore } from '../stores/hauptbuch';
+import { useAccountSystemStore } from '../stores/accountSystem'
 
 const aStore = useAccountsStore()
-await aStore.loadDataFromGoogle()
-const accountNames = aStore.accountNames
-
 const bStore = useAccountSystemStore()
-await bStore.initAS()
-const as = bStore.accountSystem 
 
+if (!bStore.accountSystem) {
+
+  // Daten parallel laden (effizienter als nacheinander)
+  await Promise.all([
+    aStore.loadDataFromGoogle(),
+    bStore.initAS()
+  ])
+}
+
+// Reaktiver Zugriff auf die Accounts im System
+// Falls bStore.accountSystem sich ändert, aktualisiert sich die Table automatisch
+const accounts = computed(() =>  aStore.accounts ?? [])  
+const asAccounts = computed(() => 
+{
+  // I would like to return an array of accounts with the number of bookings in that account,
+  const accounts = bStore.accountSystem?.accounts ?? []
+  return accounts.map(account => {
+    return {
+      name: account.name,
+      owner: account.owner,
+      bookingCount: account.bookings.length
+    }
+  })
+})
+
+// Debugging (optional)
+console.log("DGT-Central: Accounts system ready", asAccounts.value)
 </script>
 
 

@@ -105,6 +105,12 @@ export type RawStakeholder = {
   Verteilung: string
 }
 
+// definiere die RawPerioden
+export type RawPeriode = {
+  Periode: string
+  Reparaturpauschale: string
+}
+
 export class Account {
   name: string
   owner: string

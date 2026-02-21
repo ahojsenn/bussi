@@ -89,6 +89,8 @@ div
 <script setup lang="ts">
 import logd from "../utils/logDebug"
 import { watch, ref, onMounted } from "vue"
+// get rid of logd calls for this component
+
 
 interface Filter {
   title: string
@@ -118,7 +120,7 @@ const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);
 const filteredRows = computed(() => executeFilter(allData.value, myFilters.value));
 const sortedRows = computed(() => {
-  logd("Table.sortedRows: sorting by ", sortKey.value, "order", sortOrder.value);
+  // logd("Table.sortedRows: sorting by ", sortKey.value, "order", sortOrder.value);
   const data = [...filteredRows.value]; 
   return data.sort((a, b) => {
     let valA = String(a[sortKey.value] || "");
@@ -144,7 +146,7 @@ const sortedRows = computed(() => {
 
 // Aggregation der Zeilen basierend auf dem aggregateKey 
 const aggregatedRows = computed(() => {
-  logd("Table.aggregatedRows: aggregating by ", aggregateKey.value);  
+  // logd("Table.aggregatedRows: aggregating by ", aggregateKey.value);  
   const data = sortedRows.value;
   if (!aggregateKey.value) return data;
 
@@ -180,7 +182,7 @@ const aggregatedRows = computed(() => {
 
 
 const displayRows = computed(() => {
-  logd("Table.displayRows: calculating displayRows for pageNr ", pageNr.value);
+  // logd("Table.displayRows: calculating displayRows for pageNr ", pageNr.value);
   const returnArray = aggregatedRows.value;
   if (pageNr.value === -1) return returnArray // "Alle anzeigen" Modus
   const start = (pageNr.value - 1) * ROWSPERPAGE;
@@ -216,7 +218,7 @@ const unSetPage =  () =>  pageNr.value = -1
 
 watch(
   () => props.selectedBookingsToRender, () => {
-    logd("Table.watch: selectedBookingsToRender changed, resetting pageNr to 1")
+    // logd("Table.watch: selectedBookingsToRender changed, resetting pageNr to 1")
     pageNr.value = 1
   }
 )
@@ -254,7 +256,7 @@ const prettyJSON = function (value: any) {
 }
 
 const euro = function (x: number) {
-  //logd("Table.euro, got called")
+  // ("Table.euro, got called")
   return x.toLocaleString("de-DE", {
     minimumFractionDigits: 2,
     style: "currency",
@@ -296,9 +298,9 @@ const sum =   (title:any) :number => {
 
 
 const handleSetFilterText =  ()  => {
-  logd("Table.setFilterText: ", newFilter.value )
+  // logd("Table.setFilterText: ", newFilter.value )
   const str = newFilter.value.trim()
-  logd(" ... parsed as: ", str)
+  // logd(" ... parsed as: ", str)
   const filter: Filter = { title: "", value: "", isAnti: false }
   filter.title = "pattern"
   filter.isAnti = str.charAt(0) === "!" // true if first char is '!'
@@ -308,23 +310,23 @@ const handleSetFilterText =  ()  => {
 
 const getFilterFromQuery =  () => {
   const queryValue = $route.query.filters as string || "";
-  logd("Table.getFilterFromQuery: ", queryValue)
+  // logd("Table.getFilterFromQuery: ", queryValue)
   try {
     const filters = JSON.parse(queryValue);
-    logd("Table.getFilterFromQuery: parsed filters", filters); 
+    //logd("Table.getFilterFromQuery: parsed filters", filters); 
   // Output: [{ title: "account", value: "Hannes", isAnti: false }]
   } catch (e) {
-    logd("Table.getFilterFromQuery: Parsing fehlgeschlagen:", e);
+    //logd("Table.getFilterFromQuery: Parsing fehlgeschlagen:", e);
   }
 
   myFilters.value = queryValue
     ? JSON.parse(decodeURIComponent(queryValue.toString()))
     : [] // filters]
-  logd("Table.getFilterFromQuery: myFilters.value ", myFilters.value) 
+  // logd("Table.getFilterFromQuery: myFilters.value ", myFilters.value) 
 }
 
 const handleSetFilter = (title: string, value: string, isAntiFilter: boolean) => {
-  logd("Table.handleSetFilter: ", title, value)
+  // logd("Table.handleSetFilter: ", title, value)
   const filter = { title, value, isAnti: isAntiFilter }
   // only allow one filter of the same title and value
   const i = myFilters.value.findIndex(
@@ -341,9 +343,9 @@ const handleSetFilter = (title: string, value: string, isAntiFilter: boolean) =>
   }
   
 const deleteFilter = function deleteFilter(filter :any) {
-  logd("Table.deleteFiler: ", filter, myFilters.value)
+  //logd("Table.deleteFiler: ", filter, myFilters.value)
   const index = myFilters.value.indexOf(filter)
-  logd(" ...", index)
+  //logd(" ...", index)
   if (index > -1) {
     myFilters.value.splice(index, 1)
   }
@@ -356,7 +358,7 @@ const deleteFilter = function deleteFilter(filter :any) {
 
 const executeFilter =  (d: any[], filters: Filter[]): any[] =>  {
   if (!filters.length) return d;
-  logd("Table.executeFilter: ", d.length, "rows with", filters.length, "filters");
+  // logd("Table.executeFilter: ", d.length, "rows with", filters.length, "filters");
 
   return d.filter((row) => {
     // .every() ist perfekt hier: Es stoppt sofort, wenn ein Filter false liefert (Short-circuit)
@@ -396,6 +398,7 @@ const sortArray = (col: string) => {
 };
 
 const formatCamelCase = (text :string) => text.replace(/([a-z])([A-Z])/g, '$1<wbr>$2');
+
 
 </script>
 

@@ -1,4 +1,4 @@
-import { Account } from './../types';
+import { Account, type RawPeriode } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 import { URL } from '../utils/url'
@@ -18,20 +18,24 @@ const getDataFromGoogle = (url: string): Promise<any> => {
   return ret
 }
 
+
+const csvData = "Date,Amount,Category,Date,Status"; // Example with duplicate 'Date'
+
+
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GSN_sheet = '&sheet=perioden'
 const GdataUrl = URL + GMAGIC + GSN_sheet
 
 export const usePeriodenStore = defineStore('perioden', {
   state: () => ({
-    _perioden: [] as Array<any>,
-    _currentPeriod: '',
+    _perioden: [] as Array<RawPeriode>,
+    _currentPeriod: 'unbekannte Peroiode',
   }),
   actions: {
     async loadDataFromGoogle() {
       const gdata = await getDataFromGoogle(GdataUrl)
       this._perioden = gdata.data
-      this._currentPeriod = this._perioden[0]["Periode"]
+      this._currentPeriod = this._perioden[0]?.Periode || ''
       // logd("perioden.loadDataFromGoogle: ", this.perioden)
     },
     setPeriod(p: string) {
@@ -42,9 +46,9 @@ export const usePeriodenStore = defineStore('perioden', {
   getters: {
     reparaturpauschale: (state) =>
       (periodstr: string): string => {
-        return state._perioden.find(p => p["Periode"] === periodstr)["Reparaturpauschale"]
+        return state._perioden.find(p => p.Periode === periodstr)?.Reparaturpauschale || 'unbekannte Peroiode'
       },
-    listOfPeriods: (state) => state._perioden.map(p => p["Periode"]),
+    listOfPeriods: (state) => state._perioden.map(p => p.Periode),
     currentPeriod: (state) => state._currentPeriod,
   }
 })

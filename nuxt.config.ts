@@ -1,15 +1,17 @@
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   experimental: { appManifest: false },
+
   vite: {
     server: {
       allowedHosts: true,
     },
   },
+
   typescript: {
     strict: true
   },
+
   compatibilityDate: '2026-01-12',
 
   generate: {
@@ -26,9 +28,11 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     // '@nuxt/image-edge',
   ],
+
   app: {
     baseURL: '/'
   },
+
   devServer: {
     port: 42000
   },
@@ -39,4 +43,9 @@ export default defineNuxtConfig({
     },
   },
 
+  devtools: {
+    timeline: {
+      enabled: true,
+    },
+  },
 })

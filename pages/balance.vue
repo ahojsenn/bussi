@@ -36,7 +36,7 @@ div
                   th.inner Saldo 
                   th.inner.grey Soll
                   th.inner.grey Haben
-                tr.inner(v-for="a in accountStore.accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
+                tr.inner(v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
                   td.inner
                     a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
                       span {{ a.Bezeichnung }} 
@@ -50,18 +50,16 @@ div
 </template>
 
 <script setup lang="ts">
-import { useStakeholderStore } from '../stores/stakeholder'
-import {Account, BussiAccountSystem, HauptbuchBooking} from '../types'
-import { useHauptbuchStore } from '../stores/hauptbuch'
-import {usePeriodenStore} from '../stores/perioden'
-import { useAccountsStore } from '../stores/accounts'
+import { reactive, onMounted, computed} from 'vue'
+import {Account, HauptbuchBooking} from '../types'
 import { accountSystem, useAccountSystemStore } from '../stores/accountSystem'
 import { Booking } from '../types'
 import {book} from '../composables/book'
 import logd from '../utils/logDebug';
-import { reactive, onMounted,watch, getCurrentInstance, ref} from 'vue'
 import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
-import { bookingIsTanken, whoHasDrivenHowManyKmSinceLastFill,euroString, twoDigits } from '../composables/bookingHelpers';
+import { bookingIsTanken,euroString, twoDigits } from '../composables/bookingHelpers';
+
+
 
 const toRender =  reactive({
   bookings: [] as Array<Booking>,
@@ -92,71 +90,45 @@ const resetToRender = () => {
 onMounted(() => {window.addEventListener('keydown', (e)=>{if (e.key === 'Enter' && e.metaKey) resetToRender()}) })
 
 // define the stores
-const shStore = useStakeholderStore()
-const perioden = usePeriodenStore()
-const accountStore = useAccountsStore()
 const asStore = useAccountSystemStore()
 
 // load the store data
-await Promise.all([
-  await shStore.loadStakeholder(),
-  await perioden.loadDataFromGoogle(),
-  await accountStore.loadDataFromGoogle(),
+if (!asStore.accountSystem) {
   await asStore.initAS()
-])
+}
+const shStore = asStore.accountSystem?.shStore
+const pStore = asStore.accountSystem?.periodenStore
+const stakeholder =  computed(() => shStore?.stakeholder || [])
+const accountStore = computed(() => asStore.accountSystem?.aStore || [])
+const accounts = computed(() =>  asStore.accountSystem?.aStore?.accounts || [])  
+const stakeholderNames = shStore?.verteilungPersonen
+const allBookingsOfPeriod = asStore.accountSystem?.hbStore?.bookings || []
 
-const stakeholderNames = shStore.stakeholder.filter(e => e.Verteilung.indexOf(',') === -1).map(k => k.Verteilung)
-/* now wwe know all the stakeholders */
-
-const hauptbuch = useHauptbuchStore()
-const accountBezeichnungen = accountStore.accountBezeichnungen
-const accountNames = accountStore.accountNames
 let bs = asStore.accountSystem 
-
-let allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-let as = reactive(new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)) 
-
+const perioden = computed(() => bs?.periodenStore || [] )
+const currentPeriod = computed(() => bs?.periodenStore?.currentPeriod)
 
 const ERRORS = bs?.findAccount("System", "Errors") 
 
 
-const vueInstance = getCurrentInstance()
-
-watch(
-  // reload the whole dammned thing
-  perioden.$state , async (previous, current) => {
-    // exit with error if bs is null
-    if (!bs) {
-      logd("Error: account system is not initialized")
-      return null
-    } else if (!ERRORS) {
-      logd("Error: Errors account not found in account system")
-      return null
-    }
-    //logd('bilanz.watch.perioden changed', perioden.currentPeriod )
-    // empty the bs object
-    await hauptbuch.loadHauptbuch(perioden.currentPeriod)
-    allBookingsOfPeriod = reactive(hauptbuch.bookings) 
-    //bs = new BussiAccountSystem(stakeholderNames, accountNames, allBookingsOfPeriod)
-    bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden)
-    logd("in balance.watch(): ", bs)
-    // bs = balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
-    // konto 2 is not balanced
-    // bs = balanceKonto3(bs, allBookingsOfPeriod, shStore, perioden)
-    bs = balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
-    if (vueInstance && vueInstance.proxy) vueInstance.proxy.$forceUpdate()
-    toRender.bookings = []
-    toRender.name = ""
-    //logd("watch: bs after reload, allBookingsOfPeriod.lenght= ", allBookingsOfPeriod.length)
-  }
-)
-
-
 /* now we have all bookings of the current period */
+if (!bs) {
+  logd("Error: account system is not initialized")
+} else if (!ERRORS) {
+  logd("Error: Errors account not found in account system")
+} else if (!pStore ) {
+  logd("Error: perioden not found in account system")
+} else if (!shStore) {
+  logd("Error: shStore not found in account system")
+} else {
+  const rawBS = toRaw(bs)
+  bs = bookEverythingtoBS(rawBS)
+  // balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
+  balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
+  logd("bs after bookEverythingtoBS and balance: ", bs)
+}
 
-
-
-const allKm = () => bs?.findAccount('Bussi', 'Kilometer').saldoY(perioden.currentPeriod) || -1
+const allKm = () => bs?.findAccount('Bussi', 'Kilometer').saldoY(currentPeriod.value || '') || -1
 const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + liter(b), 0))
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
@@ -164,38 +136,40 @@ const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters
 
 
 
-
-//bs = bookEverythingtoBS(bs, allBookingsOfPeriod, shStore, perioden.currentPeriod)
-
 logd("bs after bookEverythingtoBS", bs)
-const balanceKonto1 = (bs: BussiAccountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
- //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
-  const to = bs.findAccount("Bussi", "Konto 1")
-  const amount = twoDigits(-to.saldoY(perioden.currentPeriod)/shStore.personen.length)
-  // if the amount is zero we don't have to do anything
-  if (amount === 0) return bs
-  // otherwise we have to book the amount to each person
-  for (var tn of shStore.personen) {
-    const from = bs.findAccount(tn, "Konto 1")
-    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , amount, 0,
-    "Ausgleichsbuchung Konto1 "+perioden.currentPeriod+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name)
-    book (b, from, to )
-//    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)
+
+function balanceKonto1(bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) {
+    //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
+    const to = bs.findAccount("Bussi", "Konto 1")
+    const amount = twoDigits(-to.saldoY(perioden.currentPeriod) / shStore.personen.length)
+    // if the amount is zero we don't have to do anything
+    if (amount === 0) return bs
+    // otherwise we have to book the amount to each person
+    for (var tn of shStore.personen) {
+      const from = bs.findAccount(tn, "Konto 1")
+      const b = new Booking("9999", perioden.currentPeriod + "-12-31", amount, 0,
+        "Ausgleichsbuchung Konto1 " + perioden.currentPeriod + " " + from.owner + ":" + from.name + " -> " + to.owner + ":" + to.name)
+      book(b, from, to)
+      //    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)
+    }
+    return bs
   }
-  return bs
-}
 
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
-const balanceSalden = (bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) => {
+function balanceSalden (bs: accountSystem, allBookingsOfPeriod_old: Array<HauptbuchBooking>, shStore_old: any, perioden_old: any) {
+  const shStore = bs.shStore
+  const perioden = bs.periodenStore?? []
+  const allBookingsOfPeriod = bs.hbStore?.bookings || []
+
   // logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
   const bussiSaldo =  bs.saldierenEuro("Bussi")
   const zeroIfNegative = (x: number) => x < 0 ? 0 : x
   // create an array of all stakeholders with their rest to pay (saldo - 1/n * bussiSaldo)
-  const stakeholdersSaldo = shStore.personen.map((e: string) => {
+  const stakeholdersSaldo = shStore?.personen.map((e: string) => {
     const saldo = bs.saldierenEuro(e)+bussiSaldo/shStore.personen.length
     return {name: e, saldo: saldo}
-  })
+  }) || []
   // logd("balanceSalden. stakeholdersSaldo ", stakeholdersSaldo)
   // book salden betwee4n personen until all salden of personen are equal
   // start with the person with the lowest saldo that absolute value is  lowwer thatn the highest saldo
@@ -208,11 +182,12 @@ const balanceSalden = (bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBo
     const amount = Math.min(-min.saldo, max.saldo)
     const to = bs.findAccount(max.name, "Ausgleichskonto")
     const from = bs.findAccount(min.name, "Ausgleichskonto")
+    const cp = bs.periodenStore?.currentPeriod || "unknown period"
     const text = "Ausgleichsbuchung Salden "
-      +"<br>"+perioden.currentPeriod+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
+      +"<br>"+cp+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
       +"<br>Amount: "+euroString(amount)
       +"<br>konkret:  "+from.owner+ " bekommt "+euroString(amount)+" von "+to.owner
-    const b = new Booking("9999",perioden.currentPeriod+"-12-31" , amount, 0, text)
+    const b = new Booking("9999",cp +"-12-31" , amount, 0, text)
     book (b, from, to )
     min.saldo += amount
     max.saldo -= amount
@@ -220,9 +195,9 @@ const balanceSalden = (bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBo
   }
   return bs
 }
-
-
 </script>
+
+
 <style scoped>
 .grey {
   color: grey;

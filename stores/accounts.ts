@@ -1,4 +1,4 @@
-import { Account, type RawAccount } from './../types';
+import { type RawAccount } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 
@@ -12,7 +12,7 @@ const getDataFromGoogle = (url: string): Promise<any> => {
       error: reject,
     })
   })
-  //  console.log("hauptbuch.getDataFromGoogle: ", ret)
+  //  console.log("accounts.getDataFromGoogle: ", ret)
   return ret
 }
 
@@ -30,7 +30,7 @@ export const useAccountsStore = defineStore('accounts', {
     async loadDataFromGoogle() {
       const gdata = await getDataFromGoogle(GdataUrl)
       this.accounts = gdata.data
-      logd("accounts.loadDataFromGoogle: ", this.accounts)
+      // logd("accounts.loadDataFromGoogle: ", this.accounts)
     },
   },
   getters: {

@@ -1,10 +1,8 @@
 <template lang="pug">
-  div 
+  div
     // Der Spinner reagiert auf den globalen Loading-State
-    LoadingSpinner(
-      :active="bStore.isLoading" 
-      message="Lade Daten..."
-    )
+    LoadingSpinner(  :active="bStore.isLoading" message="Lade Daten..." )
+
   div.background
     div.foreground
       navigation
@@ -12,15 +10,29 @@
 </template>
 
 <script setup lang="ts">
-import { useAccountSystemStore } from '~/stores/accountSystem';
+import { useAccountSystemStore } from '~/stores/accountSystem'
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
 const bStore = useAccountSystemStore()
+const route = useRoute()
+
+// Watch for URL changes
+watch(() => route.path, (newPath, oldPath) => {
+  // clear console on route change
+  console.clear()
+  logdResetStarttime()
+  logd(`Route changed from ${oldPath} to ${newPath}`)
+})
 
 // Falls der Store beim ersten Laden direkt triggern soll:
 onMounted(() => {
+  logd("Default Layout Mounted")
   if (!bStore.accountSystem) {
     bStore.initAS()
   }
+  logd("Default Layout Mounted and Store Initialized")
 })
+
 </script>
 
 <style>
