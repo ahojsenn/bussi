@@ -3,14 +3,14 @@ import { useStakeholderStore } from './stakeholder';
 import { useAccountsStore } from './accounts'
 import { useHauptbuchStore } from './hauptbuch';
 import logd from '../utils/logDebug'
-import { Account, HauptbuchBooking, type RawAccount, type RawPeriode, type RawStakeholder } from '../types'
+import { Account} from '../types'
 import { usePeriodenStore } from './perioden';
 
 
 export const useAccountSystemStore = defineStore('accountSystem', {
   state: () => ({
     // Wir starten leer
-    accountSystem: null as accountSystem | null,
+    accountSystem: null as AccountSystemClass | null,
     isLoading: false // Hilfreich für UI-Spinner
   }),
   actions: {
@@ -32,7 +32,7 @@ export const useAccountSystemStore = defineStore('accountSystem', {
         ]);
 
         // Erst wenn alle Daten da sind, Instanz erstellen
-        this.accountSystem = new accountSystem(
+        this.accountSystem = new AccountSystemClass(
           shStore,
           aStore,
           hbStore,
@@ -52,7 +52,7 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 })
 
-export class accountSystem {
+export class AccountSystemClass {
   accounts: Account[] = []
   Errors: Account
   public readonly shStore: ReturnType<typeof useStakeholderStore> | null = null

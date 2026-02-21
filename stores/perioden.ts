@@ -1,7 +1,7 @@
 import { Account, type RawPeriode } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
-import { URL } from '../utils/url'
+import { GSHEET_URL } from '../utils/url'
 import logd from '../utils/logDebug'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
@@ -24,7 +24,7 @@ const csvData = "Date,Amount,Category,Date,Status"; // Example with duplicate 'D
 
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GSN_sheet = '&sheet=perioden'
-const GdataUrl = URL + GMAGIC + GSN_sheet
+const GdataUrl = GSHEET_URL + GMAGIC + GSN_sheet
 
 export const usePeriodenStore = defineStore('perioden', {
   state: () => ({

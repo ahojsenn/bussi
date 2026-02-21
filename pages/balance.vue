@@ -52,7 +52,7 @@ div
 <script setup lang="ts">
 import { reactive, onMounted, computed} from 'vue'
 import {Account, HauptbuchBooking} from '../types'
-import { accountSystem, useAccountSystemStore } from '../stores/accountSystem'
+import { AccountSystemClass, useAccountSystemStore } from '../stores/accountSystem'
 import { Booking } from '../types'
 import {book} from '../composables/book'
 import logd from '../utils/logDebug';
@@ -121,6 +121,7 @@ if (!bs) {
 } else if (!shStore) {
   logd("Error: shStore not found in account system")
 } else {
+  logd("allBookingsOfPeriod ", allBookingsOfPeriod)
   const rawBS = toRaw(bs)
   bs = bookEverythingtoBS(rawBS)
   // balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
@@ -138,7 +139,7 @@ const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters
 
 logd("bs after bookEverythingtoBS", bs)
 
-function balanceKonto1(bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) {
+function balanceKonto1(bs: AccountSystemClass, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) {
     //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
     const to = bs.findAccount("Bussi", "Konto 1")
     const amount = twoDigits(-to.saldoY(perioden.currentPeriod) / shStore.personen.length)
@@ -157,7 +158,7 @@ function balanceKonto1(bs: accountSystem, allBookingsOfPeriod: Array<HauptbuchBo
 
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
-function balanceSalden (bs: accountSystem, allBookingsOfPeriod_old: Array<HauptbuchBooking>, shStore_old: any, perioden_old: any) {
+function balanceSalden (bs: AccountSystemClass, allBookingsOfPeriod_old: Array<HauptbuchBooking>, shStore_old: any, perioden_old: any) {
   const shStore = bs.shStore
   const perioden = bs.periodenStore?? []
   const allBookingsOfPeriod = bs.hbStore?.bookings || []

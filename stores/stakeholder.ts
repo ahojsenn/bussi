@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
-import { URL } from '../utils/url'
+import { GSHEET_URL } from '../utils/url'
 import logd from '../utils/logDebug'
 import { type RawStakeholder } from '../types'
 
@@ -22,7 +22,7 @@ logd("store.stakeholder: at start...")
 
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GSN_sheet = '&sheet=stakeholder'
-const GdataUrl = URL + GMAGIC + GSN_sheet
+const GdataUrl = GSHEET_URL + GMAGIC + GSN_sheet
 
 export const useStakeholderStore = defineStore('stakeholder', {
   state: () => ({

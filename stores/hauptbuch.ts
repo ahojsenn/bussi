@@ -2,8 +2,7 @@ import { HauptbuchBooking } from './../types';
 import { defineStore } from 'pinia'
 import Papa from 'papaparse'
 import logd from '../utils/logDebug'
-import { URL } from '../utils/url'
-import * as bookingHelpers from '../composables/bookingHelpers'
+import { GSHEET_URL } from '../utils/url'
 
 const getDataFromGoogle = (url: string): Promise<any> => {
   const ret = new Promise(function (resolve, reject) {
@@ -33,7 +32,7 @@ const generateLink = (baseUrl: string, label: string | number, rowNr: number): s
 const GMAGIC = '/gviz/tq?tqx=out:csv'
 const GEDIT = '/edit#gid=1543409034'
 const GSN_sheet = '&sheet=Fahrtenbuch'
-const GdataUrl = URL + GMAGIC + GSN_sheet
+const GdataUrl = GSHEET_URL + GMAGIC + GSN_sheet
 
 export const useHauptbuchStore = defineStore('hauptbuch', {
   state: () => ({

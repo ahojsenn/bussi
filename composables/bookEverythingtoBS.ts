@@ -1,17 +1,16 @@
 import { book } from './book';
 import logd from '../utils/logDebug';
-import { Booking, BussiAccountSystem, HauptbuchBooking } from "../types"
+import { Booking, HauptbuchBooking } from "../types"
 import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
 import { euroToNumber } from '../utils/euroToNumber';
-import { accountSystem, useAccountSystemStore } from '~/stores/accountSystem';
-import { useStakeholderStore } from '~/stores/stakeholder';
-import type { usePeriodenStore } from '~/stores/perioden';
+import { AccountSystemClass } from '~/stores/accountSystem';
+
 
 const liter = (b: HauptbuchBooking): number => bookingHelpers.bookingIsTanken(b) ? +(((b.liters || 0) + "").replace('l', '').trim().replace(',', '.')) : 0
 
 
-export const bookEverythingtoBS = (bs: accountSystem): accountSystem => {
+export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass => {
   const shStore = bs.shStore;
   const perioden = bs.periodenStore
   const allBookingsOfPeriod = bs.hbStore?.bookings || []
