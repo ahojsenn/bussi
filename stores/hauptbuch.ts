@@ -37,7 +37,7 @@ const GdataUrl = GSHEET_URL + GMAGIC + GSN_sheet
 export const useHauptbuchStore = defineStore('hauptbuch', {
   state: () => ({
     bookings: [] as Array<HauptbuchBooking>,
-    _url: URL + GEDIT,
+    _url: GSHEET_URL + GEDIT,
     access_token: ""
   }),
   actions: {

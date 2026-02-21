@@ -9,34 +9,29 @@ nav.menu
       span 
   .responsive-menu
     br
+    // Nutze @click.native oder einfach @click auf dem NuxtLink
     span.burgerMenuText
-      NuxtLink(to="/") 
-        NuxtPage home
+      NuxtLink(to="/" @click="closeMenu") home
     span.burgerMenuText
-      NuxtLink(to="/fahrtenbucheintrag") 
-        NuxtPage( @click="uncheck('djcheckbox')") *eintragen*
+      NuxtLink(to="/fahrtenbucheintrag" @click="closeMenu") *eintragen*
     span.burgerMenuText
-      NuxtLink(to="/fbeloeschen") 
-        NuxtPage löschen
+      NuxtLink(to="/fbeloeschen" @click="closeMenu") löschen
     span.burgerMenuText
-      NuxtLink(to="/balance") 
-        NuxtPage balance
+      NuxtLink(to="/balance" @click="closeMenu") balance
     span.burgerMenuText
-      NuxtLink(to="/stakeholder") 
-        NuxtPage stakeholder
+      NuxtLink(to="/stakeholder" @click="closeMenu") stakeholder
     span.burgerMenuText
-      NuxtLink(to="/accounts") 
-        NuxtPage accounts
+      NuxtLink(to="/accounts" @click="closeMenu") accounts
     span.burgerMenuText
-      NuxtLink(to="/hauptbuch") 
-        NuxtPage hauptbuch
+      NuxtLink(to="/hauptbuch" @click="closeMenu") hauptbuch
 </template>
 
 
 
 <script setup lang="ts">
-  const djcheckbox = ref(false)
-  const uncheck = () => djcheckbox.value = !djcheckbox.value
+const djcheckbox = ref(false)
+// Setzt das Menü explizit auf geschlossen
+const closeMenu = () => djcheckbox.value = false
 </script>
 
 
