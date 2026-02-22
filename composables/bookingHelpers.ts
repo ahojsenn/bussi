@@ -1,5 +1,5 @@
 import { euroToNumber } from "../utils/euroToNumber"
-import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "../types"
+import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "@/types"
 
 export const toEuro = (s: string): string => s.indexOf('€') > 0 ? s : parseFloat(s == '' ? '0' : s) + ' €'
 export const eToN = (s: string): number => parseFloat(s.replace('€', '').trim().replace('.', ''))

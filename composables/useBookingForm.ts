@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { HauptbuchBooking } from '~/types'
+import { HauptbuchBooking } from '~/types/bussitypes'
 
 export type BookingType = 'Fahrt' | 'Tanken' | 'Sonstiges'
 

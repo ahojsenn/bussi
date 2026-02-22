@@ -1,23 +1,8 @@
-import { Account, type RawPeriode } from './../types';
+import { Account, type RawPeriode } from '@/types';
 import { defineStore } from 'pinia'
-import Papa from 'papaparse'
 import { GSHEET_URL } from '../utils/url'
 import logd from '../utils/logDebug'
-
-const getDataFromGoogle = (url: string): Promise<any> => {
-  const ret = new Promise(function (resolve, reject) {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject,
-    })
-  })
-  //  console.log("perioden .getDataFromGoogle: ", ret)
-  return ret
-}
-
+import { getDataFromGoogle } from './getDataFromGoogle';
 
 const csvData = "Date,Amount,Category,Date,Status"; // Example with duplicate 'Date'
 
@@ -50,5 +35,6 @@ export const usePeriodenStore = defineStore('perioden', {
       },
     listOfPeriods: (state) => state._perioden.map(p => p.Periode),
     currentPeriod: (state) => state._currentPeriod,
+    perioden: (state) => state._perioden,
   }
 })

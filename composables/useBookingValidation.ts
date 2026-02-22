@@ -1,4 +1,4 @@
-import type { HauptbuchBooking } from '~/types'
+import type { HauptbuchBooking } from '~/types/bussitypes'
 
 // Konstanten für Validierung
 export const FUEL_PRICE_LIMITS = { min: 1.2, max: 2.5 }

@@ -1,22 +1,8 @@
 import { defineStore } from 'pinia'
-import Papa from 'papaparse'
 import { GSHEET_URL } from '../utils/url'
 import logd from '../utils/logDebug'
-import { type RawStakeholder } from '../types'
-
-const getDataFromGoogle = (url: string): Promise<any> => {
-  const ret = new Promise(function (resolve, reject) {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject,
-    })
-  })
-  //  console.log("hauptbuch.getDataFromGoogle: ", ret)
-  return ret
-}
+import { type RawStakeholder } from '@/types'
+import { getDataFromGoogle } from './getDataFromGoogle';
 
 logd("store.stakeholder: at start...")
 

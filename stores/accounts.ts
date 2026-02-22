@@ -1,20 +1,6 @@
-import { type RawAccount } from './../types';
+import { type RawAccount } from '@/types';
 import { defineStore } from 'pinia'
-import Papa from 'papaparse'
-
-const getDataFromGoogle = (url: string): Promise<any> => {
-  const ret = new Promise(function (resolve, reject) {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject,
-    })
-  })
-  //  console.log("accounts.getDataFromGoogle: ", ret)
-  return ret
-}
+import { getDataFromGoogle } from './getDataFromGoogle';
 
 const GURL = 'https://docs.google.com/spreadsheets/d/'
 const GKEY = '1UHH3Nzj6yj3d9FJbgswx-nj4fHTIuWeDzl5aJpgC-8M'

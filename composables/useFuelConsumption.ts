@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { HauptbuchBooking } from '~/types'
+import { HauptbuchBooking } from '~/types/bussitypes'
 import { bookingIsTanken } from '~/composables/bookingHelpers'
 
 export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {

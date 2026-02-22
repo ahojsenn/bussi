@@ -6,13 +6,14 @@ div Das Bussi Fahrtenbuch
 </template>
   
 <script setup lang="ts">
+logd("Hauptbuch Page Setup")
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { usePeriodenStore } from '@/stores/perioden'
 import { useAccountSystemStore } from '~/stores/accountSystem';
 import { checkBookingSyntax } from '~/composables/checkBookingSyntax';
 import logd from '../utils/logDebug';
 import {  onMounted,  getCurrentInstance} from 'vue'
-const hauptbuch = reactive(useHauptbuchStore())
+// const hauptbuch = reactive(useHauptbuchStore())
 
 const bStore = useAccountSystemStore()
 

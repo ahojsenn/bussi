@@ -1,6 +1,6 @@
 import { book } from './book';
 import logd from '../utils/logDebug';
-import { Booking, HauptbuchBooking } from "../types"
+import { Booking, HauptbuchBooking } from "@/types"
 import * as bookingHelpers from './bookingHelpers';
 import { checkBookingSyntax } from './checkBookingSyntax';
 import { euroToNumber } from '../utils/euroToNumber';
@@ -14,6 +14,9 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
   const shStore = bs.shStore;
   const perioden = bs.periodenStore
   const allBookingsOfPeriod = bs.hbStore?.bookings || []
+
+  // set all accounts to have empty bookings, so that we can fill them with the new bookings
+  bs.accounts.forEach(acc => acc.bookings = [])
 
   let benzinpreis = 1.71
   let verbrauch = 9.5
@@ -32,8 +35,10 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
     isFoL(index) ?? logd("bookEverythingtoBS splits: ", splits)
 
     for (const split of splits) { // splits occur, E.g. Bob --> Frankziska & Nils
+      let bk = null as Booking | null
       let bookingWasUsed = false
       const splitAccount = split.trim()
+
 
       // is slpitAccount in the account list?
       if (!bs.findAccount(splitAccount, "Konto 1")) {
@@ -41,7 +46,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const from = bs.findAccount("System", "Errors")
         const to = bs.findAccount("System", "Errors1")
         const text = "Konto " + splitAccount + " nicht gefunden"
-        const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
+        bk = new Booking(booking.nr, booking.date, 0, booking.amount, text, booking.amount, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
       }
@@ -52,7 +57,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const to = bs.findAccount(splitAccount, "Konto 1")
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + " Jahresbeitrag " + booking.description + " " + betrag + " " + booking.amount
-        const bk = new Booking(booking.nr, booking.date, 0, betrag, text, +booking.km)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
       }
@@ -63,10 +68,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const to = bs.findAccount(booking.key.slice(4), "Ausgleichskonto")  // slice(4), weil "an: " 4 Characters hat...
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + " Ausgleichsbuchung an " + booking.key.slice(4) + " " + betrag
-        const bk = new Booking(booking.nr, booking.date, 0,
-          betrag,
-          text,
-          +booking.km - +(booking.kmSinceLastEntry || "0"))
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
         logd("bookEverythingtoBS: Ausgleichbuchung gefunden ", booking.key, booking.key.slice(4), from, to, bk)
@@ -85,13 +87,14 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           if (verbrauch < 7.5 || verbrauch > 12) {
             const from = bs.findAccount("System", "Errors")
             const to = bs.findAccount("System", "Errors1")
+            const betrag = booking.amount / nSplits
             const text = "falscher Verbrauchswert:   " + verbrauch + "  Liter/100km<br>"
               + booking.account + " Verbrauch " + booking.description + " "
               + "<br> amount:" + booking.amount / nSplits
               + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
               + "<br> splits:" + splits
               + "<br> booking:" + JSON.stringify(booking)
-            const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount / nSplits), text, +booking.km)
+            bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
             book(bk, from, to)
           }
         }
@@ -109,10 +112,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           + betrag
           + " " + booking.amount
         //+ "<br> verteilt auf "+ booking.key + " km"
-        const bk = new Booking(booking.nr, booking.date, 0,
-          betrag,
-          text,
-          +booking.km - +(booking.kmSinceLastEntry || "0"))
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
       }
@@ -126,8 +126,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         // perioden checken, ob es eine gültige Periode gibt, wenn ja, dann Kilometer verbuchen
         if (perioden && kilometerWurdenGefahren(booking) > 0) {
           /* Kilometer wurden gefahren */
-          const from = bs.findAccount(splitAccount, "Kilometer")
-          const to = bs.findAccount("Bussi", "Kilometer")
+          const to = bs.findAccount(splitAccount, "Kilometer")
+          const from = bs.findAccount("Bussi", "Kilometer")
           const km = booking.kmSinceLastEntry / nSplits
           const kmEnde = +booking.km
           const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
@@ -139,8 +139,9 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
             + splitAccount + "-->" + "Bussi"
             + " " + booking.description
             + "<br>Benzingeld: " + benzingeld + " €, Reparaturgeld: " + reppausch + " € für " + km + " km"
-          const bk = new Booking(booking.nr, booking.date, km, 0, text, kmStart)
+          bk = new Booking(booking.nr, booking.date, km, 0, text, reppausch, km, from.id, to.id)
           book(bk, from, to)
+
 
           // set this to true only, if there is no amount in booking.amount
           // otherwise this has also to be booked in "Tanken" or "Sonstiges"
@@ -152,27 +153,25 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           const to1 = bs.findAccount("Bussi", "Konto 2")
           const text1 = "Benzingeld: " + splitAccount + "-->Bussi, " + benzingeld + " € für " + km + " km"
             + ", Benzinpreis: " + benzinpreis + "€/L, Verbrauch: " + verbrauch + " =" + Math.round(benzinpreis * verbrauch) / 100 + "€/km"
-          const bk1 = new Booking(booking.nr, booking.date, benzingeld, 0, text1, kmStart)
-          book(bk1, from1, to1)
+          bk = new Booking(booking.nr, booking.date, 0, benzingeld, text1, benzingeld, km, from1.id, to1.id)
+          book(bk, from1, to1)
 
 
           // Reparaturkosten aus Kilometern verbuchen
           const from2 = bs.findAccount("Bussi", "Konto 3")
           const to2 = bs.findAccount(splitAccount, "Konto 3")
-          const bk2 = new Booking(booking.nr, booking.date, 0, reppausch,
-            "Reparaturpauschale " + perioden.reparaturpauschale(bk_year) + " €/km * " + km + " km "
-            + "= " + reppausch + " € : " + splitAccount + " --> Bussi", kmStart
-          )
-          book(bk2, from2, to2)
+          let text2 = "Reparaturpauschale " + perioden.reparaturpauschale(bk_year) + " €/km * " + km + " km "
+            + "= " + reppausch + " € : " + splitAccount + " --> Bussi"      
+          bk = new Booking(booking.nr, booking.date, 0, reppausch, text2, reppausch, 0, from2.id, to2.id)
+          book(bk, from2, to2)
 
           // Tankstand abbuchen, wenn Kilometer gefahren wurden
           const to3 = bs.findAccount("Bussi", "Tankstand")
           const from3 = bs.findAccount(splitAccount, "Tankstand")
           const consumedLiters = Math.round(100 * km * verbrauch / 100) / 100
-          const bk3 = new Booking(booking.nr, booking.date, 0, consumedLiters,
-            km + " km gefahren: " + splitAccount + "-->Bussi, " + consumedLiters + " Liter für " + km + " km", kmStart
-          )
-          book(bk3, from3, to3)
+          const text3 = km + " km gefahren: " + splitAccount + "-->Bussi, " + consumedLiters + " Liter für " + km + " km"
+          bk = new Booking(booking.nr, booking.date, 0, consumedLiters, text3, reppausch, consumedLiters, from3.id, to3.id)
+          book(bk, from3, to3)
 
         }
 
@@ -192,7 +191,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const betrag = euroToNumber(booking.amount) / nSplits
         const kmEnde = +booking.km
         const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
-        const bk = new Booking(booking.nr, booking.date, betrag, 0, text, kmStart)
+        bk = new Booking(booking.nr, booking.date, betrag, 0, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
         // logd("bookEverythingToBS.Tanken: ", splits, bk, from, to, booking.kmSinceLastFuelFill)
@@ -201,10 +200,9 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         // Tankstand verbuchen, wenn getankt wurde
         const from1 = bs.findAccount("Bussi", "Tankstand")
         const to1 = bs.findAccount(splitAccount, "Tankstand")
-        const bk1 = new Booking(booking.nr, booking.date, 0, liter(booking) / nSplits,
-          "Tanken: " + splitAccount + "-->Bussi, " + liter(booking) / nSplits + " Liter für " + amount + " €", kmStart
-        )
-        book(bk1, from1, to1)
+        const text1 = "Tanken: " + splitAccount + "-->Bussi, " + liter(booking) / nSplits + " Liter für " + amount + " €"
+        bk = new Booking(booking.nr, booking.date, 0, liter(booking) / nSplits, text1, liter(booking) / nSplits, 0, from1.id, to1.id)
+        book(bk, from1, to1)
       }
 
 
@@ -215,7 +213,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const to = bs.findAccount("Bussi", "Konto 1")
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + " Konto 1 " + booking.description + " " + betrag + " " + booking.amount
-        const bk = new Booking(booking.nr, booking.date, 0, betrag, text, +booking.km)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
       }
@@ -242,7 +240,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const receipient = booking.key.split(" ")[1]
         const to = bs.findAccount(receipient, "Ausgleichskonto")
         const text = booking.account + "-->" + receipient + ": " + booking.description + " " + euroToNumber(booking.amount) / nSplits + " " + booking.amount
-        const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount) / nSplits, text, +booking.km)
+        const betrag = euroToNumber(booking.amount) / nSplits
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
         book(bk, from, to)
         bookingWasUsed = true
       }
@@ -266,7 +265,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           const receiveraccount = bookingdescr.split(" -> ")[1].split(":")[1]
           const from = bs.findAccount(sender, senderaccount)
           const to = bs.findAccount(receiver, receiveraccount)
-          const bk = new Booking(booking.nr, booking.date, euroToNumber(booking.amount) / nSplits, 0, booking.description, booking.km)
+          const betrag = booking.amount / nSplits
+          bk = new Booking(booking.nr, booking.date, betrag, 0, booking.description, betrag, 0, from.id, to.id)
           book(bk, from, to)
           bookingWasUsed = true
         }
@@ -293,7 +293,7 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           + "<br> booking:" + JSON.stringify(booking)
           + "<br> bookingType:" + bookingHelpers.bookingType(booking)
           + "<br> Error:" + bookingError
-        const bk = new Booking(booking.nr, booking.date, 0, euroToNumber(booking.amount), text, +booking.km)
+        bk = new Booking(booking.nr, booking.date, 0, booking.amount, text, booking.amount, 0, from.id, to.id)
         book(bk, from, to)
       }
 

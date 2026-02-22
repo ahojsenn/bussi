@@ -1,21 +1,22 @@
 <template lang="pug">
 div 
   YearSwitch 
-  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Buchungen
-  div(v-if="bs.findAccount('Bussi', 'Errors').bookings.length > 0") 
+  h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Hauptbuchbuchungen
+  div(v-if="asStore.accountSystem.findAccount('Bussi', 'Errors').bookings.length > 0") 
     a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors').bookings.length  }}
 
-  div Kilometer: {{ allKm() }} km
-  div Benzin: {{ allLiter() }} Liter
-  div CO2: {{ tonnenCO2() }} Tonnen CO2  
-  div Verbrauch: {{ verbrauchOverall() }} Liter/100km
+  div Kilometer: {{ formatKm(kmByStakeholderAndPeriod('Bussi', perioden.currentPeriod)) }}
+  div Benzin: {{ formatLiter(allLiter()) }}
+  div CO2: {{ formatCO2(tonnenCO2()) }}  
+  div Verbrauch: {{ formatConsumption(verbrauchOverall()) }}
   div Reparaturpauschale: {{perioden.reparaturpauschale(perioden.currentPeriod)}} €/km
   div &nbsp;
 
   div(v-if="toRender.bookings.length != 0") 
     .center
       button.green(@click="resetToRender()" ) hit ⌘+&ltEnter&gt  to go back
-      div(v-if="toRender.bookings.length>0")
+      div Konto.id: {{ toRender.account.id.toLocaleString('de-DE') }}
+      div Konto: {{ toRender.name }} {{ toRender.bookings.length }} Buchungen
       Table(:selectedBookingsToRender="toRender.bookings" :konto="toRender.name" )
 
   div(v-else)
@@ -23,10 +24,10 @@ div
       tbody
         tr(v-for="sh in stakeholderNames")
           td {{ sh }}
-            a(href="#" @click="selectToRender(bs.findAccount(sh,'Kilometer'))") 
-              div Kilometer: {{ Math.abs(bs.findAccount(sh, 'Kilometer').saldoY(perioden.currentPeriod)) }} km
+            a(href="#" @click="selectToRender(asStore.accountSystem.findAccount(sh,'Kilometer'))") 
+              div {{formatKm(kmByStakeholderAndPeriod(sh, perioden.currentPeriod))}}
             div 
-              b Saldo: {{ bs.saldierenEuro(sh) }} €
+              b Saldo: {{ formatEuro(asStore.accountSystem.saldierenEuro(sh)) }}
           td 
             table.inner(:style="{width: '100%'}")
               tbody
@@ -38,22 +39,22 @@ div
                   th.inner.grey Haben
                 tr.inner(v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
                   td.inner
-                    a(href="#" @click="selectToRender(bs.findAccount(sh,a.Name))") 
+                    a(href="#" @click="selectToRender(asStore.accountSystem.findAccount(sh,a.Name))") 
                       span {{ a.Bezeichnung }} 
                     span  &nbsp;&nbsp;&nbsp;&nbsp;
-                  td.inner {{ bs.findAccount(sh, a.Name).bookings.length }} 
-                  td.inner {{ bs.findAccount(sh, a.Name).saldoY(perioden.currentPeriod) }} {{accountStore.getEinheitByName(a.Name) || "€"}}
-                  td.inner.grey {{ bs.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
-                  td.inner.grey {{ bs.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
+                  td.inner {{ asStore.accountSystem.findAccount(sh, a.Name).bookings.length }} 
+                  td.inner {{ asStore.accountSystem.saldoByAccountAndPeriod(sh, a.Name, perioden.currentPeriod) }} {{accountStore.getEinheitByName(a.Name) || "€"}}
+                  td.inner.grey {{ asStore.accountSystem.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
+                  td.inner.grey {{ asStore.accountSystem.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
   br            
   br
 </template>
 
 <script setup lang="ts">
 import { reactive, onMounted, computed} from 'vue'
-import {Account, HauptbuchBooking} from '../types'
+import {Account, HauptbuchBooking} from '@/types'
 import { AccountSystemClass, useAccountSystemStore } from '../stores/accountSystem'
-import { Booking } from '../types'
+import { Booking } from '@/types'
 import {book} from '../composables/book'
 import logd from '../utils/logDebug';
 import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
@@ -61,30 +62,64 @@ import { bookingIsTanken,euroString, twoDigits } from '../composables/bookingHel
 
 
 
-const toRender =  reactive({
-  bookings: [] as Array<Booking>,
-  name: "",
-})
+// 1. Wir speichern nur, WELCHES Konto ausgewählt wurde (die Referenz)
+const selectedAccount = ref<Account | null>(null)
 
-const selectToRender = (account: Account) => {
-  let cumulative = 0;
-  const bkngs = account.bookings.map(booking => {
-    cumulative += booking.haben - booking.soll;
+// 2. Das reaktive Objekt wird zum Computed
+const toRender = computed(() => {
+  const account = selectedAccount.value
+  const period = asStore.accountSystem?.periodenStore?.currentPeriod
+  
+  if (!account || !period) {
+    return { bookings: [], name: "", account: account }
+  }
+
+  // Filterung anwenden (wir nutzen deine Logik von gBbAaP)
+  const filtered = filterBookingsByPeriod.value(account.bookings, period)
+
+  // Saldo-Berechnung (Kumulativ für die gefilterte Liste)
+  let cumulative = 0
+  const bookingsWithSaldo = filtered.map(booking => {
+    cumulative += booking.haben - booking.soll || 0
     return {
       ...booking,
       saldo: Math.round(cumulative * 100) / 100
-    };
-  });
+    }
+  })
+  logd("toRender: account ", account.name, " period ", period, " bookingsWithSaldo ", bookingsWithSaldo)
+  return {
+    bookings: bookingsWithSaldo,
+    name: `${account.id} ${account.owner} ${account.name}`,
+    account: account 
+  }
+})
 
-  // toRender.bookings.splice(0, toRender.bookings.length)
-  toRender.bookings = [] // clear the array reactively  
-  toRender.bookings.push(...bkngs)
-  toRender.name = account.owner + " " + account.name
+// 3. Die Funktionen zum Steuern werden ganz einfach
+const selectToRender = (account: Account) => {
+  selectedAccount.value = account
 }
+
 const resetToRender = () => {
-  toRender.bookings = []
-  toRender.name = ""
+  selectedAccount.value = null
 } 
+
+// get bookings of an account by period like in hauptbuch.vue
+const filterBookingsByPeriod = computed(() => (bookings: any[], period: string) : Array<any> => {
+  let r = bookings
+  // logd("filterBookingsByPeriod: period= ", period, " bookings.length= ", bookings.length, bookings[1])
+  // period cound be "2024", "2024-Q1", "alles bis 2025", "alles bis 2024-Q3", "2024-Q2 bis 2024-Q4" etc.
+  // if 'period' contains 'alles bis' then filter out all rows after the given date
+  if (period && period.indexOf('bis') > 0) {
+    const date = period.split('bis')[1].trim()
+    r = bookings.filter((e: any) => e.date.substring(0, 4) <= date)
+  } else if (isNaN(Number(period))) {    
+    // ignore the selector and do not filter, i.e. take all values
+  }else {
+    r = bookings.filter((e: any) => e.date.substring(0, 4) === period)
+  }
+  return r
+})  
+
 
 // Apple + Enter to reset the Table view
 onMounted(() => {window.addEventListener('keydown', (e)=>{if (e.key === 'Enter' && e.metaKey) resetToRender()}) })
@@ -102,17 +137,21 @@ const stakeholder =  computed(() => shStore?.stakeholder || [])
 const accountStore = computed(() => asStore.accountSystem?.aStore || [])
 const accounts = computed(() =>  asStore.accountSystem?.aStore?.accounts || [])  
 const stakeholderNames = shStore?.verteilungPersonen
-const allBookingsOfPeriod = asStore.accountSystem?.hbStore?.bookings || []
+const allBookingsOfPeriod = computed(() => {
+  const r = asStore.accountSystem?.hbStore?.bookings || []
+  return filterBookingsByPeriod.value(r, asStore.accountSystem?.periodenStore?.currentPeriod || "")
+  })    
 
-let bs = asStore.accountSystem 
-const perioden = computed(() => bs?.periodenStore || [] )
-const currentPeriod = computed(() => bs?.periodenStore?.currentPeriod)
+const sourceBS = toRaw(asStore.accountSystem)
 
-const ERRORS = bs?.findAccount("System", "Errors") 
+const perioden = computed(() => sourceBS?.periodenStore || [] )
+const currentPeriod = computed(() => sourceBS?.periodenStore?.currentPeriod)
+
+const ERRORS = asStore.accountSystem?.findAccount("System", "Errors") 
 
 
 /* now we have all bookings of the current period */
-if (!bs) {
+if (!sourceBS) {
   logd("Error: account system is not initialized")
 } else if (!ERRORS) {
   logd("Error: Errors account not found in account system")
@@ -122,22 +161,38 @@ if (!bs) {
   logd("Error: shStore not found in account system")
 } else {
   logd("allBookingsOfPeriod ", allBookingsOfPeriod)
-  const rawBS = toRaw(bs)
-  bs = bookEverythingtoBS(rawBS)
+  const calculatedBS = bookEverythingtoBS(sourceBS)
   // balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
-  balanceSalden(bs, allBookingsOfPeriod, shStore, perioden)
-  logd("bs after bookEverythingtoBS and balance: ", bs)
+  balanceSalden(calculatedBS, allBookingsOfPeriod.value, shStore, perioden)
+  logd("bs after bookEverythingtoBS and balance: ", calculatedBS)
+
+  // 3. Markiere das Ergebnis als 'Raw', falls du verhindern willst, 
+  // dass Vue JEDES Unterobjekt tiefen-beobachtet (Performance-Boost)
+  const finalBS = markRaw(calculatedBS)
+
+  // 4. Erst jetzt den Store aktualisieren -> Trigger nur 1x die UI
+  asStore.accountSystem = finalBS
 }
 
-const allKm = () => bs?.findAccount('Bussi', 'Kilometer').saldoY(currentPeriod.value || '') || -1
-const allLiter = () => Math.round(allBookingsOfPeriod.reduce((acc, b) => acc + liter(b), 0))
+const allKm = () => asStore.accountSystem?.findAccount('Bussi', 'Kilometer').saldoY(currentPeriod.value || '') || -1
+
+// berechne die km für einen stakeholder und einen Zeitraum, z.B. 2024 oder 2024-Q1 oder "alles bis 2024-Q3"
+const kmByStakeholderAndPeriod = (stakeholder: string, period: string) : number => {
+  const account = asStore.accountSystem?.findAccount(stakeholder, 'Kilometer')
+  if (!account) return -1
+  const bookings = filterBookingsByPeriod.value(account.bookings, period)
+  return Math.abs(bookings.reduce((acc, cv:Booking) => acc + cv.quantity, 0))
+}
+
+
+const allLiter = () => Math.round(allBookingsOfPeriod.value.reduce((acc, b) => acc + liter(b), 0))
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
 const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters || 0)+"").replace('l', '').trim().replace(',', '.')) : 0
 
 
 
-logd("bs after bookEverythingtoBS", bs)
+logd("bs after bookEverythingtoBS", asStore.accountSystem)
 
 function balanceKonto1(bs: AccountSystemClass, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) {
     //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
@@ -148,8 +203,8 @@ function balanceKonto1(bs: AccountSystemClass, allBookingsOfPeriod: Array<Hauptb
     // otherwise we have to book the amount to each person
     for (var tn of shStore.personen) {
       const from = bs.findAccount(tn, "Konto 1")
-      const b = new Booking("9999", perioden.currentPeriod + "-12-31", amount, 0,
-        "Ausgleichsbuchung Konto1 " + perioden.currentPeriod + " " + from.owner + ":" + from.name + " -> " + to.owner + ":" + to.name)
+      const b = new Booking("9999", perioden.currentPeriod + "-12-31", 0, 0,
+        "Ausgleichsbuchung Konto1 " + perioden.currentPeriod + " " + from.owner + ":" + from.name + " -> " + to.owner + ":" + to.name, amount)
       book(b, from, to)
       //    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)
     }
@@ -188,7 +243,7 @@ function balanceSalden (bs: AccountSystemClass, allBookingsOfPeriod_old: Array<H
       +"<br>"+cp+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
       +"<br>Amount: "+euroString(amount)
       +"<br>konkret:  "+from.owner+ " bekommt "+euroString(amount)+" von "+to.owner
-    const b = new Booking("9999",cp +"-12-31" , amount, 0, text)
+    const b = new Booking("9999",cp +"-12-31" , 0, 0, text, amount)
     book (b, from, to )
     min.saldo += amount
     max.saldo -= amount

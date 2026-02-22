@@ -31,6 +31,7 @@ const asAccounts = computed(() =>
   const accounts = bStore.accountSystem?.accounts ?? []
   return accounts.map(account => {
     return {
+      id: account.id,
       name: account.name,
       owner: account.owner,
       bookingCount: account.bookings.length

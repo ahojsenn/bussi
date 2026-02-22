@@ -1,18 +1,21 @@
 <template lang="pug">
   div
-    // Der Spinner reagiert auf den globalen Loading-State
-    LoadingSpinner(  :active="bStore.isLoading" message="Lade Daten..." )
-
-  div.background
+    //- Der Spinner reagiert auf den globalen Loading-State
+    ClientOnly
+      LoadingSpinner(:active="bStore.isLoading" message="Lade Daten..." )
+  //- Zeige Content erst, wenn nicht mehr loading
+  div.background(v-if="!bStore.isLoading") 
     div.foreground
       navigation
-      slot 
+      slot
 </template>
 
 <script setup lang="ts">
 import { useAccountSystemStore } from '~/stores/accountSystem'
-import { watch } from 'vue'
+
+import { watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+
 const bStore = useAccountSystemStore()
 const route = useRoute()
 
@@ -41,9 +44,6 @@ onMounted(() => {
  src:  url('/fonts/SupermarkerVARTrial.woff2') format('woff2'), /* SupermarkerVARTrial.woff2 oder SupermarkerVARTrial.ttf */
        url('/fonts/SupermarkerVARTrial.woff') format('woff'), /* SupermarkerVARTrial.woff oder SupermarkerVARTrial.ttf */
        url('/fonts/SupermarkerVARTrial.ttf') format('truetype'); /* SupermarkerVARTrial.ttf */
-
-  /* background black */
-  background-color: #000;
 }
 select, option,input, form {
   font: 14px "supermarker";

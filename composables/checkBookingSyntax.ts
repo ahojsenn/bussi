@@ -1,10 +1,10 @@
-import type { HauptbuchBooking } from '../types';
+import type { HauptbuchBooking } from '@/types';
 import { useStakeholderStore } from '../stores/stakeholder'
 
 function isValidDate(dateString: string): boolean {
   // Dieser eine Regex deckt alles ab: Datum sowie optional (Zeit und optional Sekunden)
   const regEx = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$/;
-  
+
   // 1. Format-Check
   if (!regEx.test(dateString)) return false;
 
@@ -21,7 +21,7 @@ function isValidDate(dateString: string): boolean {
   const now = new Date();
   const fiftyYearsAgo = new Date();
   fiftyYearsAgo.setFullYear(now.getFullYear() - 50);
-  
+
   const buffer = new Date();
   buffer.setFullYear(now.getFullYear() + 1); // 1 Jahr Puffer in die Zukunft
 

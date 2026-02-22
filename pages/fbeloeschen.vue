@@ -13,7 +13,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 
 <script setup lang="ts">
 import { useHauptbuchStore } from '../stores/hauptbuch'
-import { HauptbuchBooking } from '../types'
+import { HauptbuchBooking } from '@/types'
 import logd from '~/utils/logDebug'
 const hauptbuch = useHauptbuchStore()
 await hauptbuch.loadHauptbuch()

@@ -1,22 +1,8 @@
-import { HauptbuchBooking } from './../types';
+import { HauptbuchBooking } from '@/types';
 import { defineStore } from 'pinia'
-import Papa from 'papaparse'
 import logd from '../utils/logDebug'
 import { GSHEET_URL } from '../utils/url'
-
-const getDataFromGoogle = (url: string): Promise<any> => {
-  const ret = new Promise(function (resolve, reject) {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject,
-    })
-  })
-  //logd("hauptbuch.getDataFromGoogle: ", ret)
-  return ret
-}
+import { getDataFromGoogle } from './getDataFromGoogle';
 
 /* --- Hilfsfunktionen außerhalb des Stores (Pure Functions) --- */
 const sToZahl = (s: string): number =>
@@ -76,7 +62,7 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
           + this._url + '#range=' + (rnr + 2) + ':' + (rnr + 2) + '>' + s + '</a>'
       })
 
-
+      logd("hauptbuch.loadHauptbuch: rawData after filtering: ", rawData.length, rawData)
       this.bookings = rawData.map((b: any) => new HauptbuchBooking(
         generateLink(this._url, b.rowNr, b.rowNr), // Jetzt sauber zugreifbar
         b["Datum"],
@@ -92,8 +78,9 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
         b["V-Schlüssel"],
         b.rowNr = b.rowNr
       ))
-      // logd("hauptbuch.loadHauptbuch: ", period, this.bookings.length, this.bookings)
+      logd("hauptbuch.loadHauptbuch: loaded", period, this.bookings.length, this.bookings)
     },
+
 
 
     async createBooking(b: HauptbuchBooking): Promise<Response> {

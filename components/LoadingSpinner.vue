@@ -56,10 +56,10 @@ defineProps({
 }
 
 .loading-text {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #2c3e50;
+  font-family: 'supermarker', sans-serif; /* Konsistent zum restlichen Design */
+  color: #6a5acd; /* Passend zum Lila deines Hintergrunds (#c1b5f9) */
   font-weight: 500;
-  letter-spacing: 0.5px;
+  font-size: 1.2rem;
 }
 
 /* Animationen */

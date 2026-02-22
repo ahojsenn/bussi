@@ -60,7 +60,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 <script setup lang="ts">
 import { useHauptbuchStore } from '../stores/hauptbuch'
 import { useStakeholderStore } from '../stores/stakeholder' 
-import { HauptbuchBooking } from './../types'
+import { HauptbuchBooking } from '@/types'
 import logd from '~/utils/logDebug'
 const sh_store = useStakeholderStore()
 await sh_store.loadStakeholder()
