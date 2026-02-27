@@ -6,14 +6,22 @@
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
 - Initialbuchungen am Anfang einbuchen
 - check again if splits.length = nSplits is correctly done in every booking
-- neues acc ountsystem verwenden
+- neues accountsystem verwenden
   - in accounts --> done
-  - in balance --> not done yet
+  - in balance --> done
+  - Jahresendbuchungen automatisieren
+  - debuggen 
+    - check km
+    - checck Konto 1
+    - check Konto 2
+    - check Konto 3
 
-- ladespinner einbauen
+
 
 
 # done
+- Jahresendbuchungen markieren
+- ladespinner einbauen
 - ladespinner in bookings und accounts eingabaut
 - Konto "Tankestand" eingeführt
 - check if splits.length = nSplits is correctly done in every booking

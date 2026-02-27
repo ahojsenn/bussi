@@ -3,7 +3,7 @@ div
   YearSwitch 
   h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Hauptbuchbuchungen
   div(v-if="asStore.accountSystem.findAccount('Bussi', 'Errors').bookings.length > 0") 
-    a.errors(href='#' @click="selectToRender(bs.findAccount('Bussi', 'Errors') )")  Errors:  {{ bs.findAccount('Bussi', 'Errors').bookings.length  }}
+    a.errors(href='#' @click="selectToRender(asStore.accountSystem.findAccount('Bussi', 'Errors') )")  Errors:  {{ asStore.accountSystem.findAccount('Bussi', 'Errors').bookings.length  }}
 
   div Kilometer: {{ formatKm(kmByStakeholderAndPeriod('Bussi', perioden.currentPeriod)) }}
   div Benzin: {{ formatLiter(allLiter()) }}
@@ -162,8 +162,7 @@ if (!sourceBS) {
 } else {
   logd("allBookingsOfPeriod ", allBookingsOfPeriod)
   const calculatedBS = bookEverythingtoBS(sourceBS)
-  // balanceKonto1(bs, allBookingsOfPeriod, shStore, perioden)
-  balanceSalden(calculatedBS, allBookingsOfPeriod.value, shStore, perioden)
+  balanceSalden(calculatedBS)
   logd("bs after bookEverythingtoBS and balance: ", calculatedBS)
 
   // 3. Markiere das Ergebnis als 'Raw', falls du verhindern willst, 
@@ -192,28 +191,8 @@ const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters
 
 
 
-logd("bs after bookEverythingtoBS", asStore.accountSystem)
-
-function balanceKonto1(bs: AccountSystemClass, allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any, perioden: any) {
-    //logd("bookEverythingToBS. Verteilung Konto 1 auf ", shStore.personen)
-    const to = bs.findAccount("Bussi", "Konto 1")
-    const amount = twoDigits(-to.saldoY(perioden.currentPeriod) / shStore.personen.length)
-    // if the amount is zero we don't have to do anything
-    if (amount === 0) return bs
-    // otherwise we have to book the amount to each person
-    for (var tn of shStore.personen) {
-      const from = bs.findAccount(tn, "Konto 1")
-      const b = new Booking("9999", perioden.currentPeriod + "-12-31", 0, 0,
-        "Ausgleichsbuchung Konto1 " + perioden.currentPeriod + " " + from.owner + ":" + from.name + " -> " + to.owner + ":" + to.name, amount)
-      book(b, from, to)
-      //    logd("bookEverythingToBS. Verteilung Konto 1 auf ", tn, shStore.personen.length)
-    }
-    return bs
-  }
-
-
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
-function balanceSalden (bs: AccountSystemClass, allBookingsOfPeriod_old: Array<HauptbuchBooking>, shStore_old: any, perioden_old: any) {
+function balanceSalden (bs: AccountSystemClass) {
   const shStore = bs.shStore
   const perioden = bs.periodenStore?? []
   const allBookingsOfPeriod = bs.hbStore?.bookings || []
@@ -227,9 +206,9 @@ function balanceSalden (bs: AccountSystemClass, allBookingsOfPeriod_old: Array<H
     return {name: e, saldo: saldo}
   }) || []
   // logd("balanceSalden. stakeholdersSaldo ", stakeholdersSaldo)
-  // book salden betwee4n personen until all salden of personen are equal
+  // book salden between personen until all salden of personen are equal
   // start with the person with the lowest saldo that absolute value is  lowwer thatn the highest saldo
-  let maxIterations = 100
+  let maxIterations = 10
   while (true && maxIterations-- > 0) {
     const min = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo < e.saldo ? acc : e)
     const max = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo > e.saldo ? acc : e)
@@ -243,7 +222,9 @@ function balanceSalden (bs: AccountSystemClass, allBookingsOfPeriod_old: Array<H
       +"<br>"+cp+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
       +"<br>Amount: "+euroString(amount)
       +"<br>konkret:  "+from.owner+ " bekommt "+euroString(amount)+" von "+to.owner
-    const b = new Booking("9999",cp +"-12-31" , 0, 0, text, amount)
+
+    const b = new Booking("9999",cp +"-12-31", 0, 0, text, amount, 0, from.id, to.id)
+
     book (b, from, to )
     min.saldo += amount
     max.saldo -= amount

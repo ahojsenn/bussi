@@ -45,7 +45,7 @@ div
             span(v-html="formatCamelCase(col)") 
             span(v-if="sortKey == col && sortOrder > 0") ↓
             span(v-if="sortKey == col && sortOrder < 0") ↑
-            span(v-if="['kmSinceLastEntry', 'soll','haben','amount', 'quantity', 'amount'].includes(col)") &nbsp; {{ sumRow(col) }}  
+            span(v-if="['kmSinceLastEntry', 'soll','haben','amount', 'quantity', 'amount', 'saldo'].includes(col)") &nbsp; {{ sumRow(col) }}  
             span(v-else) &nbsp;
             // Arrows for sort indication
             span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑
@@ -57,14 +57,16 @@ div
              
     
       tbody
-        tr(v-for="row in displayRows")
+        tr(v-for="row in displayRows" v-bind:class="{ \
+              jahresendbuchung: isJahresendbuchung(row) \
+              }")
           td(
             v-for="(col, colnr) in tableColumns",
             v-on:click.left="handleSetFilter(col, row[col], false)",
             v-on:click.right="handleSetFilter(col, row[col], true)",
             v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",  
             v-on:mouseleave="setCurrentCol(-1)",   
-            v-bind:class="{ hilight: row['Name'] == '7 ErgebnisNachSteuern', underaccountrow: row['Type'] == 'Unterkonto', greylight: row['Name'] && row['Name'].includes('Steuer:') }"
+            
           )
             div(v-bind:class="{nowrap: 'date amount'.indexOf(col) > -1}")
               span(
@@ -120,7 +122,7 @@ const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);
 const filteredRows = computed(() => executeFilter(allData.value, myFilters.value));
 const sortedRows = computed(() => {
-  // logd("Table.sortedRows: sorting by ", sortKey.value, "order", sortOrder.value);
+  //logd("Table.sortedRows: sorting by ", sortKey.value, "order", sortOrder.value);
   const data = [...filteredRows.value]; 
   return data.sort((a, b) => {
     let valA = String(a[sortKey.value] || "");
@@ -142,6 +144,24 @@ const sortedRows = computed(() => {
     if (textA > textB) return 1 * sortOrder.value;
     return 0;
   });
+});
+
+// computed property to identifiy jahresendbuchungen
+// where Date is 31.12. and Type is "Jahresendbuchung"
+// or date is 1.1. and Type is "Jahresanfangsbuchung"
+const isJahresendbuchung = computed<((row: any) => boolean)>(() => {
+  return (row: any) => {
+
+    
+    const date = row["date"]  // je nachdem, wie die Spalte heißt
+    const type = row.description || row.type; // je nachdem, wie die Spalte heißt
+    if (!date || !type) return false;
+    // date is of format 2026-01-31 20:33
+    const isEndOfYear = date.toString().includes("12-31") && type.toString().includes("Ausbuchen");
+    const isStartOfYear = date.toString().includes("01-01") && type.toString().includes("Einbuchen");
+
+    return isEndOfYear || isStartOfYear;
+  };
 });
 
 // Aggregation der Zeilen basierend auf dem aggregateKey 
@@ -474,6 +494,9 @@ tr.new {
 /* Zebra striping */
 tr:nth-of-type(odd) {
   /*background: #eee;*/
+}
+.jahresendbuchung {
+  background-color: rgba(255, 100, 0, 0.3);
 }
 .nowrap {
   white-space: nowrap;

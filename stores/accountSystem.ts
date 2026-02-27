@@ -54,7 +54,8 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 export class AccountSystemClass {
   accounts: Account[] = []
-  Errors: Account
+  Errors: Account = new Account(2000000, "Errors", "System")
+  Errors1: Account = new Account(2000001, "Errors1", "System")
   public readonly shStore: ReturnType<typeof useStakeholderStore> | null = null
   public readonly aStore: ReturnType<typeof useAccountsStore> | null
   public readonly hbStore: ReturnType<typeof useHauptbuchStore> | null = null
@@ -81,7 +82,6 @@ export class AccountSystemClass {
     this.aStore = aS
     this.hbStore = hbS
     this.periodenStore = ps
-    this.Errors = new Account(2000000, "Errors", "system")
 
     // generate accounts for all stakeholders and account types, but only Listenkonten for Bussi
     for (const [sh_nr, sh] of (shS?.verteilungPersonen || []).entries()) {
@@ -152,6 +152,6 @@ export class AccountSystemClass {
     } else {
       r = account.bookings.filter((e: any) => e.date.substring(0, 4) === period)
     }
-    return r.reduce((acc: number, cv: any) => acc += cv.haben - cv.soll, 0).toFixed(2) 
+    return +r.reduce((acc: number, cv: any) => acc += cv.haben - cv.soll, 0).toFixed(2)
   }
 }
