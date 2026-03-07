@@ -24,7 +24,7 @@ if (!bStore.accountSystem) {
 
 // Reaktiver Zugriff auf die Accounts im System
 // Falls bStore.accountSystem sich ändert, aktualisiert sich die Table automatisch
-const accounts = computed(() =>  aStore.accounts ?? [])  
+const accounts = computed(() =>  aStore.sortedAccounts ?? [])  
 const asAccounts = computed(() => 
 {
   // I would like to return an array of accounts with the number of bookings in that account,

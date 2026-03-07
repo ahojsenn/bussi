@@ -1,6 +1,8 @@
 import logd from "../utils/logDebug"
 import { Account } from "./accounting"
 
+export type Kontenart = "Aufwandskonto" | "Ertragskonto" | "Aktivkonto" | "Passivkonto" | "Hilfskonto" | "Privatkonto" | "Materialkonto" | "Statistikkonto" | "Sonstiges"
+
 export class HauptbuchBooking {
   nr: string
   date: string
@@ -44,6 +46,9 @@ export class HauptbuchBooking {
     this.key = key
     this.rowNr = rowNr || 0
   }
+  toString(): string {
+    return JSON.stringify(this)
+  }
 
   // Datum	Wer	km (Endstand)	km	km seit letzter Tankung	Liter getankt	Verbrauch/l	Benzinpreis	Betrag	Was	V-Schlüssel
   toSpreadsheetRow(): (string | number | undefined)[] {
@@ -70,47 +75,20 @@ export class HauptbuchBooking {
 export type RawAccount = {
   Name: string
   Bezeichnung: string
-  Anfangsbestand: string
   Einheit: string
-  Kontotyp: "T-Konto" | "Listenkonto"
+  Kontotyp: Kontenart
+  Kontonummer: number
 }
 
 // definiere den typ RawStakeholder, damit die Daten aus google korrekt typisiert werden können
 export type RawStakeholder = {
   Name: string
   Verteilung: string
+  Typ: string
 }
 
 // definiere die RawPerioden
 export type RawPeriode = {
   Periode: string
   Reparaturpauschale: string
-}
-
-
-
-export class BussiAccountSystem {
-  accounts = [] as Array<Account>
-  hauptbuchBookings = [] as Array<HauptbuchBooking>
-  Errors = {} as Account
-  Errors1 = {} as Account
-  Konto9000 = {} as Account
-  constructor(stakeholder = [] as Array<string>, accounts = [] as Array<string>, hauptbuchBookings = [] as Array<HauptbuchBooking>) {
-    this.hauptbuchBookings = hauptbuchBookings
-    this.Errors = new Account("Errors", "system")
-    this.Errors1 = new Account("Errors1", "system")
-    // this.Konto9000 = new Account("zum Ausbuchen Tankunterfüllstand am Jahresende", "Bussi")
-    for (const owner of stakeholder)
-      for (const name of accounts) {
-        this.accounts.push(new Account(name, owner))
-      }
-  }
-  findAccount(owner: string, name: string): Account {
-    // logd("findAccountbyON", name, owner, this.accounts.find(a => (a.name === name) && (a.owner === owner)))
-    return this.accounts.find(a => (a.name === name) && (a.owner === owner))
-      || this.Errors
-  }
-  saldierenEuro(owner: string): number {
-    return Math.round(this.accounts.filter(a => a.owner === owner).reduce((acc, cv) => cv.name !== "Kilometer" ? acc += cv.saldo() : acc, 0) * 100) / 100
-  }
 }

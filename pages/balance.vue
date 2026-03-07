@@ -2,10 +2,11 @@
 div 
   YearSwitch 
   h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Hauptbuchbuchungen
-  div(v-if="asStore.accountSystem.findAccount('Bussi', 'Errors').bookings.length > 0") 
-    a.errors(href='#' @click="selectToRender(asStore.accountSystem.findAccount('Bussi', 'Errors') )")  Errors:  {{ asStore.accountSystem.findAccount('Bussi', 'Errors').bookings.length  }}
-
-  div Kilometer: {{ formatKm(kmByStakeholderAndPeriod('Bussi', perioden.currentPeriod)) }}
+  div(v-if="ERRORS.bookings.length > 0") 
+    a.errors(href='#' @click="selectToRender(ERRORS)")  Errors:  {{ ERRORS.bookings.length  }}
+  
+  div Gesellschaft: {{ gesellschaft }}
+  div Kilometer: {{ formatKm(kmByStakeholderAndPeriod(gesellschaft, perioden.currentPeriod)) }}
   div Benzin: {{ formatLiter(allLiter()) }}
   div CO2: {{ formatCO2(tonnenCO2()) }}  
   div Verbrauch: {{ formatConsumption(verbrauchOverall()) }}
@@ -27,27 +28,39 @@ div
             a(href="#" @click="selectToRender(asStore.accountSystem.findAccount(sh,'Kilometer'))") 
               div {{formatKm(kmByStakeholderAndPeriod(sh, perioden.currentPeriod))}}
             div 
-              b Saldo: {{ formatEuro(asStore.accountSystem.saldierenEuro(sh)) }}
+              b 
           td 
             table.inner(:style="{width: '100%'}")
               tbody
                 tr
-                  th.inner Kontobezeichnung 
+                  th.inner Kontobezeichnung {{sh}} 
                   th.innter #Buchungen
                   th.inner Saldo 
                   th.inner.grey Soll
                   th.inner.grey Haben
-                tr.inner(v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') && ((acc.Name !== 'Konto 9000') || (sh === 'Bussi'))) " )
-                  td.inner
-                    a(href="#" @click="selectToRender(asStore.accountSystem.findAccount(sh,a.Name))") 
-                      span {{ a.Bezeichnung }} 
+                tr.inner(
+                  v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') \
+                    && (sh === acc.owner) && (acc.bookings.length > 0))  " )
+                  td.inner 
+                    a(href="#" @click="selectToRender(asStore.accountSystem.getAccountById(a.id))") 
+                      span {{ a.id }} :: {{ a.name }}
                     span  &nbsp;&nbsp;&nbsp;&nbsp;
-                  td.inner {{ asStore.accountSystem.findAccount(sh, a.Name).bookings.length }} 
-                  td.inner {{ asStore.accountSystem.saldoByAccountAndPeriod(sh, a.Name, perioden.currentPeriod) }} {{accountStore.getEinheitByName(a.Name) || "€"}}
-                  td.inner.grey {{ asStore.accountSystem.findAccount(sh, a.Name).saldoSoll(perioden.currentPeriod) }} €
-                  td.inner.grey {{ asStore.accountSystem.findAccount(sh, a.Name).saldoHaben(perioden.currentPeriod) }} €        
+                  td.inner {{ a.nbookings(perioden.currentPeriod) }}
+                  template(v-if="a.unit === '€'")  
+                    td.inner {{ a.saldoPeriod(perioden.currentPeriod) }} {{a.unit|| ""}}
+                    td.inner.grey {{ a.saldoSoll(perioden.currentPeriod) }}
+                    td.inner.grey {{ a.saldoHaben(perioden.currentPeriod) }}  
+                  template(v-else)
+                    td &nbsp;
+                    td &nbsp;
+                    td &nbsp;
   br            
   br
+  div Saldenausgleichsbuchungen (Buchungen mit Konto "Saldenausgleich"):
+  table
+    tbody
+      tr(v-for="b in asStore.accountSystem?.Saldenausgleich.bookings || []")
+        td.inner(v-html="b.description")
 </template>
 
 <script setup lang="ts">
@@ -58,7 +71,7 @@ import { Booking } from '@/types'
 import {book} from '../composables/book'
 import logd from '../utils/logDebug';
 import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
-import { bookingIsTanken,euroString, twoDigits } from '../composables/bookingHelpers';
+import { euroString } from '../composables/bookingHelpers';
 
 
 
@@ -134,8 +147,9 @@ if (!asStore.accountSystem) {
 const shStore = asStore.accountSystem?.shStore
 const pStore = asStore.accountSystem?.periodenStore
 const stakeholder =  computed(() => shStore?.stakeholder || [])
+const gesellschaft = computed(() => shStore?.getGesellschaft || "Gesellschaft")
 const accountStore = computed(() => asStore.accountSystem?.aStore || [])
-const accounts = computed(() =>  asStore.accountSystem?.aStore?.accounts || [])  
+const accounts = computed(() =>  asStore.accountSystem?.accounts.sort((a, b) => a.id - b.id ) || [])  
 const stakeholderNames = shStore?.verteilungPersonen
 const allBookingsOfPeriod = computed(() => {
   const r = asStore.accountSystem?.hbStore?.bookings || []
@@ -146,8 +160,9 @@ const sourceBS = toRaw(asStore.accountSystem)
 
 const perioden = computed(() => sourceBS?.periodenStore || [] )
 const currentPeriod = computed(() => sourceBS?.periodenStore?.currentPeriod)
+const companyName = computed(() => sourceBS?.shStore?.getGesellschaft || "Gesellschaft")  
 
-const ERRORS = asStore.accountSystem?.findAccount("System", "Errors") 
+const ERRORS = asStore.accountSystem?.Errors
 
 
 /* now we have all bookings of the current period */
@@ -163,7 +178,7 @@ if (!sourceBS) {
   logd("allBookingsOfPeriod ", allBookingsOfPeriod)
   const calculatedBS = bookEverythingtoBS(sourceBS)
   balanceSalden(calculatedBS)
-  logd("bs after bookEverythingtoBS and balance: ", calculatedBS)
+  //logd("bs after bookEverythingtoBS and balance: ", calculatedBS)
 
   // 3. Markiere das Ergebnis als 'Raw', falls du verhindern willst, 
   // dass Vue JEDES Unterobjekt tiefen-beobachtet (Performance-Boost)
@@ -173,21 +188,21 @@ if (!sourceBS) {
   asStore.accountSystem = finalBS
 }
 
-const allKm = () => asStore.accountSystem?.findAccount('Bussi', 'Kilometer').saldoY(currentPeriod.value || '') || -1
+const allKm = () => kmByStakeholderAndPeriod(gesellschaft.value, currentPeriod.value || "") 
 
 // berechne die km für einen stakeholder und einen Zeitraum, z.B. 2024 oder 2024-Q1 oder "alles bis 2024-Q3"
 const kmByStakeholderAndPeriod = (stakeholder: string, period: string) : number => {
   const account = asStore.accountSystem?.findAccount(stakeholder, 'Kilometer')
   if (!account) return -1
   const bookings = filterBookingsByPeriod.value(account.bookings, period)
-  return Math.abs(bookings.reduce((acc, cv:Booking) => acc + cv.quantity, 0))
+  return Math.abs(bookings.reduce((acc, cv:Booking) => acc + cv.amount, 0))
 }
 
 
-const allLiter = () => Math.round(allBookingsOfPeriod.value.reduce((acc, b) => acc + liter(b), 0))
+const allLiter = () => Math.round(allBookingsOfPeriod.value.reduce((acc, b) => acc + b.liters, 0))
 const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
-const liter = (b: HauptbuchBooking): number => bookingIsTanken(b) ? +(((b.liters || 0)+"").replace('l', '').trim().replace(',', '.')) : 0
+
 
 
 
@@ -198,8 +213,7 @@ function balanceSalden (bs: AccountSystemClass) {
   const allBookingsOfPeriod = bs.hbStore?.bookings || []
 
   // logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
-  const bussiSaldo =  bs.saldierenEuro("Bussi")
-  const zeroIfNegative = (x: number) => x < 0 ? 0 : x
+  const bussiSaldo =  bs.saldierenEuro(bs.shStore?.getGesellschaft || "Gesellschaft") || 0  
   // create an array of all stakeholders with their rest to pay (saldo - 1/n * bussiSaldo)
   const stakeholdersSaldo = shStore?.personen.map((e: string) => {
     const saldo = bs.saldierenEuro(e)+bussiSaldo/shStore.personen.length
@@ -215,8 +229,8 @@ function balanceSalden (bs: AccountSystemClass) {
     if (min.saldo >= 0.01) break // all salden are equal, but tolerate a one cent difference
     if (max.saldo <= 0.01) break // all salden are equal, but tolerate a one cent difference
     const amount = Math.min(-min.saldo, max.saldo)
-    const to = bs.findAccount(max.name, "Ausgleichskonto")
-    const from = bs.findAccount(min.name, "Ausgleichskonto")
+    const to = bs.Saldenausgleich
+    const from = bs.Errors
     const cp = bs.periodenStore?.currentPeriod || "unknown period"
     const text = "Ausgleichsbuchung Salden "
       +"<br>"+cp+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name

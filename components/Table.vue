@@ -45,7 +45,7 @@ div
             span(v-html="formatCamelCase(col)") 
             span(v-if="sortKey == col && sortOrder > 0") ↓
             span(v-if="sortKey == col && sortOrder < 0") ↑
-            span(v-if="['kmSinceLastEntry', 'soll','haben','amount', 'quantity', 'amount', 'saldo'].includes(col)") &nbsp; {{ sumRow(col) }}  
+            span(v-if="['kmSinceLastEntry', 'soll', 'haben'].includes(col)") &nbsp; {{ sumRow(col) }}  
             span(v-else) &nbsp;
             // Arrows for sort indication
             span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑
@@ -69,13 +69,7 @@ div
             
           )
             div(v-bind:class="{nowrap: 'date amount'.indexOf(col) > -1}")
-              span(
-                v-if="'amount '.indexOf(col) > -1",
-                style="text-align: right",
-                v-html="euro(row[col])"
-              )
-                |
-              span(v-else v-html="row[col]?.toLocaleString('de-DE') || ''") 
+              span(style="text-align: right" v-html="row[col]?.toLocaleString('de-DE') || ''") 
     
     
       tfoot
@@ -84,7 +78,7 @@ div
             v-for="col in tableColumns",
             v-if="col != 'Account_Link'",
             style="text-align: right")
-            span(v-if="showSum && 'Netto Saldo Amount Psoll Phaben'.indexOf(col) > -1") {{ sumEuro(col) }}
+            span(v-if="showSum && 'Netto Saldo Psoll Phaben'.indexOf(col) > -1") {{ sumEuro(col) }}
             span(v-else) &nbsp;
 </template>
 
@@ -111,12 +105,16 @@ const props = defineProps({
     //default: Function, // new Array(),
   },
   showSum: Boolean,
+  sortOrder: {
+    type: Number,
+    default: 1,
+  },
 })
 
 const aggregateKey = ref("")
 const toggleAggregation = (str: string) => aggregateKey.value = aggregateKey.value === str ? "" : str
 const sortKey = ref('nr'); // Standard-Sortierung
-const sortOrder = ref(-1); // 1 = aufsteigend, -1 = absteigend
+const sortOrder = ref(props.sortOrder); // 1 = aufsteigend, -1 = absteigend
 const myFilters = ref<Array<Filter>>([])
 const currentRow = ref<any>({})
 const allData = computed(() => props.selectedBookingsToRender || []);

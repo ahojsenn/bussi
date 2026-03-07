@@ -20,14 +20,20 @@ export const useAccountsStore = defineStore('accounts', {
     },
   },
   getters: {
+    // get all accounts sorted by  "Aufwandskonto","Ertragskonto", "Aktivkonto", "Passivkonto" , "Statistikkonto" and then by account number
+    sortedAccounts: (state) => {
+      const typeOrder = ["Aufwandskonto", "Ertragskonto", "Aktivkonto", "Passivkonto", "Statistikkonto"]
+      return state.accounts.slice().sort((a, b) => {
+        const aTypeIndex = typeOrder.findIndex(type => a.Bezeichnung?.indexOf(type) > -1)
+        const bTypeIndex = typeOrder.findIndex(type => b.Bezeichnung?.indexOf(type) > -1)
+        if (aTypeIndex === bTypeIndex) {
+          return (a.Kontonummer || 0) - (b.Kontonummer || 0)
+        }
+        return aTypeIndex - bTypeIndex
+      })
+    },
     accountNames: (state) => state.accounts.map(s => s["Name"]),
     accountBezeichnungen: (state) => state.accounts.map(s => s["Bezeichnung"]),
-    accountAnfangsbestand: (state) => state.accounts.map(s => s["Anfangsbestand"]),
-    // get Anfangsbestand by account name
-    getAnfangsbestandByName: (state) => (name: string) => {
-      const account = state.accounts.find(s => s["Name"] === name)
-      return account ? account["Anfangsbestand"] : null
-    },
     // get "Einheit" by account name
     getEinheitByName: (state) => (name: string) => {
       const account = state.accounts.find(s => s["Name"] === name)

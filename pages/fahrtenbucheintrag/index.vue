@@ -1,9 +1,9 @@
 <template lang="pug">
 form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
-  button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug?
+  button.debugbutton( v-if="!hostname().includes('konfi')"  @click="DEBUG=!DEBUG") debug? {{DEBUG ? 'ON' : 'OFF'}}
   h2 Fahrtenbucheintrag \#{{ hauptbuch.bookings.length }} 
   div(v-if="!hostname().includes('konfi') && DEBUG") 
-    div not on production on 
+    div not on production
     div {{hostname()}}
     div last submitted: 
       span(v-html="lastSubmitted")
@@ -32,6 +32,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     v-if="bookingtype!='Fahrt'"
     v-model:amount="amount"
     v-model:liters="liters"
+    v-model:nachtrag="nachtrag"
     v-model:vollgetankt="vollgetankt"
     v-model:description="thisbk.description"
     :showLiterInput="bookingtype==='Tanken'"
@@ -48,7 +49,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
     div km lezte Tankung: {{consumption.kmAtLastFuelfill()}}
     div wieviel passt gerade in den Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} 
-    div Rest im Tank: {{accounts.getAnfangsbestandByName("Kraftstoff") - consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} Liter
+    div Rest im Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} Liter
   
   // Anzeige der Validierungsfehler
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
@@ -97,9 +98,10 @@ await accounts.loadDataFromGoogle()
 
 const DEBUG = ref(false)
 const hostname = () => {
-  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+  if (typeof window !== 'undefined' && window.location?.hostname) {
     return window.location.hostname
   }
+  return '' // Fallback auf leeren String
 }
 const n_ow = new Date()
 const now = new Date(+n_ow - n_ow.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -126,7 +128,7 @@ const initialBooking = new HauptbuchBooking(
 )
 
 const form = useBookingForm(initialBooking)
-const { bookingtype, thisbk, vollgetankt, liters, amount, lastSubmitted, buildDescription, resetForm } = form
+const { bookingtype, thisbk, vollgetankt, nachtrag, liters, amount, lastSubmitted, buildDescription, resetForm } = form
 
 const km = useKilometerCounter(lastbk.value.km)
 
@@ -150,7 +152,7 @@ const validationResult = computed(() => {
     bk.fuelPriceInEuro = +amount.value / +liters.value
     bk.liters = +liters.value
     bk.consumption = consumption.calculateConsumption(+liters.value, bk.kmSinceLastFuelFill)
-    return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption.value, vollgetankt.value)
+    return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption.value, vollgetankt.value, nachtrag.value)
   }
   
   if (bt === 'Sonstiges') {
@@ -182,13 +184,21 @@ const onSubmit = async () => {
     bookingtype.value,
     thisbk.value.kmSinceLastEntry,
     od,
-    vollgetankt.value
+    vollgetankt.value,
+    nachtrag.value
   )
+
+  // set kmSinceLastFuelFill to 0 if vollgetankt is true, otherwise add the kmSinceLastEntry to it
+  const kmDrivenWithLiters = thisbk.value.liters / (consumption.averageConsumption.value / 100)
+  const kmOfLastFuelFill = lastbk.value.km - lastbk.value.kmSinceLastFuelFill
+  thisbk.value.kmSinceLastFuelFill = vollgetankt.value ? 0 : lastbk.value.kmSinceLastFuelFill + thisbk.value.kmSinceLastEntry - kmDrivenWithLiters
 
   console.log('onSubmit', thisbk.value)
   
   if (validationResult.value.ok) {
     lastSubmitted.value += thisbk.value.description + "<br>" + JSON.stringify(thisbk.value)
+
+    // now append the booking to the backend
     const response = await hauptbuch.createBooking(thisbk.value)
     // show a result popup on response
     if (response.ok) {

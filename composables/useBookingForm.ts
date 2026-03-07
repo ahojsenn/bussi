@@ -9,7 +9,8 @@ export function useBookingForm(
 ) {
   const bookingtype = ref<BookingType>(initialBookingType)
   const thisbk = ref(initialBooking)
-  const vollgetankt = ref(true)
+  const vollgetankt = ref(false)
+  const nachtrag = ref(false)
   const liters = ref("Litres")
   const amount = ref("Euro")
   const lastSubmitted = ref("nothing yet")
@@ -41,12 +42,14 @@ export function useBookingForm(
     bookingType: BookingType,
     kmSinceLastEntry: number,
     originalDescription: string,
-    isVollgetankt: boolean
+    isVollgetankt: boolean,
+    isNachtrag: boolean
   ): string => {
     let description = "FBE: " + bookingType
     description += kmSinceLastEntry > 0 ? " :: km: " + kmSinceLastEntry : ''
     description += originalDescription !== "" ? " :: " + originalDescription : ""
     description += !isVollgetankt ? " :: nicht vollgetankt" : ""
+    description += isNachtrag ? " :: Nachtrag" : ""
     return description
   }
 
@@ -65,6 +68,7 @@ export function useBookingForm(
     bookingtype,
     thisbk,
     vollgetankt,
+    nachtrag,
     liters,
     amount,
     lastSubmitted,

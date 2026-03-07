@@ -63,21 +63,24 @@ export const useHauptbuchStore = defineStore('hauptbuch', {
       })
 
       logd("hauptbuch.loadHauptbuch: rawData after filtering: ", rawData.length, rawData)
-      this.bookings = rawData.map((b: any) => new HauptbuchBooking(
-        generateLink(this._url, b.rowNr, b.rowNr), // Jetzt sauber zugreifbar
-        b["Datum"],
-        b["Wer"],
-        sToZahl(b["km (Endstand)"]),
-        sToZahl(b["km"]),
-        sToZahl(b["km seit letzter Tankung"]),
-        sToZahl(b["Liter getankt"]),
-        sToZahl(b["Verbrauch/l"]),
-        sToZahl(b["Benzinpreis"]),
-        sToZahl(b["Betrag"]),
-        b["Was"],
-        b["V-Schlüssel"],
-        b.rowNr = b.rowNr
-      ))
+      this.bookings = rawData.map((b: any, nr: number) => {
+        nr <= 1 ? logd("hauptbuch.loadHauptbuch: mapping row ", nr, " with data: ", b) : null
+        return new HauptbuchBooking(
+          generateLink(this._url, b.rowNr, b.rowNr), // Jetzt sauber zugreifbar
+          b["Datum"],
+          b["Wer"],
+          sToZahl(b["km (Endstand)"]),
+          sToZahl(b["km"]),
+          sToZahl(b["km seit letzter Tankung"]),
+          sToZahl(b["Liter getankt"]),
+          sToZahl(b["Verbrauch/l"]),
+          sToZahl(b["Benzinpreis"]),
+          sToZahl(b["Betrag"]),
+          b["Was"],
+          b["V-Schlüssel"],
+          b.rowNr = b.rowNr
+        )
+      })
       logd("hauptbuch.loadHauptbuch: loaded", period, this.bookings.length, this.bookings)
     },
 

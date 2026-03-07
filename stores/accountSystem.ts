@@ -3,7 +3,7 @@ import { useStakeholderStore } from './stakeholder';
 import { useAccountsStore } from './accounts'
 import { useHauptbuchStore } from './hauptbuch';
 import logd from '../utils/logDebug'
-import { Account, Booking } from '@/types';
+import { Account, Booking, type Unit } from '@/types';
 import { usePeriodenStore } from './perioden';
 
 
@@ -54,8 +54,9 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 export class AccountSystemClass {
   accounts: Account[] = []
-  Errors: Account = new Account(2000000, "Errors", "System")
-  Errors1: Account = new Account(2000001, "Errors1", "System")
+  Errors: Account = new Account(3000000, "Errors", "System", "Errors")
+  Errors1: Account = new Account(3000001, "Errors1", "System", "Errors")
+  Saldenausgleich: Account = new Account(3000002, "Saldenausgleich", "System", "€") 
   public readonly shStore: ReturnType<typeof useStakeholderStore> | null = null
   public readonly aStore: ReturnType<typeof useAccountsStore> | null
   public readonly hbStore: ReturnType<typeof useHauptbuchStore> | null = null
@@ -83,50 +84,51 @@ export class AccountSystemClass {
     this.hbStore = hbS
     this.periodenStore = ps
 
-    // generate accounts for all stakeholders and account types, but only Listenkonten for Bussi
-    for (const [sh_nr, sh] of (shS?.verteilungPersonen || []).entries()) {
-      for (const [acc_nr, acc] of (aS?.accounts || []).entries()) {
-        // skip Listenkonton for stakeholders but the first one, which is Bussi
-        if (acc.Kontotyp === "Listenkonto" && sh !== "Bussi") {
-          // logd("accountSystem.constructor: skipping Listenkonto for ", sh);
-          continue
-        }
-        else
-          // create T-Accounts for all stakeholders, but only Listenkonten for Bussi
-          // logd("accountSystem.constructor: creating account for ", sh, acc.Name),
-          this.accounts.push(new Account(generateStructuredAccountId(sh_nr + 1, acc_nr + 1), acc.Name, sh))
+    // generate accounts for the "Gesellschaft" for all accounts, that do not have "je Gesellschafter:"  in the decription
+    if (aS?.accounts) {
 
-      }
-    }
-    // book Anfangsbestand for all accounts in the system for the first period
-    const firstPeriod = this.periodenStore?.perioden[0]
-    if (firstPeriod) {
-      for (const sh of shS?.verteilungPersonen || [])
-        for (const acc of aS?.accounts || []) {
-          // skip Listenkonton for stakeholders but the first one, which is Bussi
-          if (acc.Kontotyp === "Listenkonto" && sh !== "Bussi") {
-            // logd("accountSystem.constructor: skipping Listenkonto for ", sh);
-            continue
+      for (const [acc_nr, acc] of aS.sortedAccounts.entries()) {
+        const _accntName = acc.Name + " :: " + acc.Bezeichnung
+
+        // else if Bezeichnug has "für alle Stakeholder:" in the description, then create only one account for all stakeholders with account number 2000000 + account number, e.g. for account number 2: 2000002
+        if (acc.Bezeichnung && acc.Bezeichnung.indexOf("je Stakeholder:") > -1) {
+          for (const [sh_nr, sh] of (shS?.getStakeholder || []).entries()) {
+            const _accountId = generateStructuredAccountId(4000 + acc_nr, sh_nr + 1)
+            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit || 'EUR'))
           }
-          else {
-            // logd("accountSystem.constructor: booking Anfangsbestand for ", sh, acc.Name, " with amount ", acc.Anfangsbestand, " and unit ", acc.Einheit)
-            const account = this.findAccount(sh, acc.Name)
-            if (account !== this.Errors) {
-              //account.book(firstPeriod.Periode, parseFloat(acc.Anfangsbestand), acc.Einheit, "Anfangsbestand")
-            } else {
-              logd("accountSystem.constructor: account not found for ", sh, acc.Name)
-            }
+        } else if (acc.Bezeichnung && acc.Bezeichnung.indexOf("je Gesellschafter:") > -1) {
+          // for all other accounts, create an account per stakeholder
+          // with acccount number 1000000 + stakeholder number * 100 + account number, e.g. for stakeholder 1 and account 2: 1000200
+          for (const [sh_nr, sh] of (shS?.getGesellschafter || []).entries()) {
+            const _accountId = generateStructuredAccountId(acc.Kontonummer, sh_nr + 1)
+            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit))
           }
+        } else {
+          const _accountId = +acc.Kontonummer || generateStructuredAccountId(2000, acc_nr + 1)
+          this.accounts.push(new Account(_accountId, _accntName, shS?.getGesellschaft || "Gesellschaft", acc.Einheit as Unit))
         }
-    } else {
-      logd("accountSystem.constructor: no periods found in periodenStore")
+      }
+      // logd("accountSystem.constructor: accounts generated: ", this.accounts)
     }
   }
-  findAccount(owner: string, name: string): Account {
-    acc: this.Errors
-    // logd("findAccountbyON", name, owner, this.accounts.find(a => (a.name === name) && (a.owner === owner)))
-    return this.accounts.find(a => (a.name === name) && (a.owner === owner))
-      || this.Errors
+  findAccount = (owner: string, name: string): Account => {
+    const acc = this.accounts.find(a => (a.name.split("::")[0].trim() === name) && (a.owner === owner))
+    if (!acc) {
+      const errmsg = "findAccount: account not found for owner " + owner + " and name " + name
+      console.error(errmsg)
+      return this.Errors
+    }
+    return acc
+  }
+
+  // getAccounnt by number
+  getAccountById = (id: number): Account => {
+    const acc = this.accounts.find(a => a.id === id)
+    if (!acc) {
+      console.error("getAccountById: account not found for id ", id)
+      return this.Errors
+    }
+    return acc
   }
   saldierenEuro(owner: string): number {
     return Math.round(this.accounts.filter(a => a.owner === owner).reduce((acc, cv) => cv.name !== "Kilometer" ? acc += cv.saldo() : acc, 0) * 100) / 100

@@ -15,6 +15,9 @@ div.pump
     )
     br
     span.pump-label Price to pay €
+    br
+    span.pump-label nachtrag?
+    input(type="checkbox" name="nachtrag?" placeholder="" v-model="nachtrag" style="color: red")
   
   div.pump-display-container(v-if="showLiterInput")
     input(
@@ -33,7 +36,7 @@ div.pump
     span.pump-label Litres
     br
     span.pump-label vollgetankt?
-    input(type="checkbox" name="vollgetankt?" checked placeholder="" v-model="vollgetankt" style="color: red") 
+    input(type="checkbox" name="vollgetankt?" placeholder="" v-model="vollgetankt" style="color: red") 
 
   span.pump-display-container(v-if="showDescription")
     textarea.description( 
@@ -49,8 +52,9 @@ div.pump
 <script setup lang="ts">
 const amount = defineModel<string>('amount', { required: true })
 const liters = defineModel<string>('liters', { required: true })
-const vollgetankt = defineModel<boolean>('vollgetankt', { required: true })
+const vollgetankt = defineModel<boolean>('vollgetankt')
 const description = defineModel<string>('description', { required: true })
+const nachtrag = defineModel<boolean>('nachtrag')
 
 defineProps<{
   showLiterInput: boolean

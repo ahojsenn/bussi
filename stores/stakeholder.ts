@@ -4,6 +4,7 @@ import logd from '../utils/logDebug'
 import { type RawStakeholder } from '@/types'
 import { getDataFromGoogle } from './getDataFromGoogle';
 
+
 logd("store.stakeholder: at start...")
 
 const GMAGIC = '/gviz/tq?tqx=out:csv'
@@ -32,6 +33,9 @@ export const useStakeholderStore = defineStore('stakeholder', {
       // if (v != shName) logd("in shVerteilung, found ", shName, " --> ", v)
       return v
     },
+    getStakeholder: (state) => state.stakeholder.filter(s => (s.Typ === "Gesellschafter" || s.Typ === "Gesellschaft")).map(s => s.Name),
+    getGesellschaft: (state) => state.stakeholder.filter(s => s.Typ === "Gesellschaft")[0].Name,
+    getGesellschafter: (state) => state.stakeholder.filter(s => s.Typ === "Gesellschafter").map(s => s.Name),
     // get a List of of people that appear in the "Verteilung" field of any stakeholder, split by comma and trim spaces
     verteilungPersonen: (state) => {
       const personenSet = new Set<string>()

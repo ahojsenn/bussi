@@ -33,7 +33,8 @@ export function useBookingValidation() {
     bk: HauptbuchBooking,
     kmWithinRange: boolean,
     averageConsumption: number,
-    vollgetankt: boolean
+    vollgetankt: boolean,
+    nachtrag: boolean
   ): ValidationResult => {
     let retString = ''
 
@@ -42,7 +43,7 @@ export function useBookingValidation() {
     retString += !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
     retString += bk.account === '' ? 'Konto not selected<br>' : ''
 
-    if (vollgetankt) {
+    if (vollgetankt && !nachtrag) {
       retString += bk.consumption < CONSUMPTION_TOLERANCE.low * averageConsumption
         ? 'Verbrauch zu niedrig, bitte prüfen<br>'
         : ''

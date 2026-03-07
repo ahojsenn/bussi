@@ -1,7 +1,7 @@
 // types/accounting.ts
 import { v4 as uuidv4 } from 'uuid'; // Falls du das npm-Paket 'uuid' nutzt
 
-export type Unit = 'EUR' | 'USD' | 'kg' | 'Liter' | '€/Liter' | 'Liter/100km' | 'km';
+export type Unit = '€' | 'EUR' | 'USD' | 'kg' | 'Liter' | '€/Liter' | 'Liter/100km' | 'km' | "Errors";
 
 // Nutze diesen sicheren Fallback:
 // id would like to be unique, but we don't want to rely on crypto.randomUUID() in case of non-HTTPS environments
@@ -22,28 +22,25 @@ export class Booking {
   description: string
   amount: number
   quantity?: number; // Optional, falls Menge vorhanden
-  sollKonto?: number 
-  habenKonto?: number 
+  sollKonto?: number
+  habenKonto?: number
   constructor(
     nr: string,
     date: string,
-    //amount: number,
     soll: number,
     haben: number,
     description: string,
     amount: number,
     quantity?: number, // Optional, falls Menge vorhanden
     sollKonto?: number,
-    habenKonto?: number, 
+    habenKonto?: number,
 
   ) {
     this.nr = nr
     this.date = date
-    //this.amount = amount
     this.soll = soll
     this.haben = haben
     this.description = description
-    //this.kmStart = kmStart || 0
     this.amount = amount
     this.quantity = quantity
     this.sollKonto = sollKonto
@@ -57,12 +54,27 @@ export class Account {
   owner: string
   unit: Unit // = 'EUR' , unit for the quantity, e.g. 'km' for the kilometer account  
   bookings = [] as Array<Booking>
-  constructor(id: number, name: string, owner: string, unit: Unit = 'EUR') {
+  constructor(id: number, name: string, owner: string, unit: Unit) {
     this.id = id
     this.name = name
     this.owner = owner
     this.unit = unit
     this.bookings = []
+  }
+  nbookings(p: string): number {
+    if (p === 'über alles') {
+      return this.bookings.length
+    }
+    // else if (p === 'alles bis yyyy') {
+    else if (p.startsWith('alles bis ')) {
+      const year = p.substring('alles bis '.length)
+      return this.bookings.filter(b => b.date.substring(0, 4) <= year).length
+    }
+    // else if (p === 'yyyy') {
+    else if (Number(p)) {
+      return this.bookings.filter(b => b.date.substring(0, 4) === p).length
+    }
+    else return this.bookings.length
   }
   saldo(): number {
     //logd("saldo: ", this.name, this.owner, this.soll, this.haben, "")
@@ -88,6 +100,22 @@ export class Account {
         .reduce((acc, cv) => acc += cv.haben - cv.soll, 0)
     ) / 100
       : this.saldo()
+  }
+  saldoPeriod(p: string): number {
+    // also ork with periods like 'über alles' or 'alles bis 2022'
+    if (p === 'über alles') {
+      return this.saldo()
+    }
+    // else if (p === 'alles bis yyyy') {
+    else if (p.startsWith('alles bis ')) {
+      const year = p.substring('alles bis '.length)
+      return this.saldoY(year)
+    }
+    // else if (p === 'yyyy') {
+    else if (Number(p)) {
+      return this.saldoY(p)
+    }
+    else return this.saldo()
   }
   saldoSoll(year: string): number {
     const filterFunc = Number(year)

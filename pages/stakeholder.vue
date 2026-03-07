@@ -1,11 +1,12 @@
 <template lang="pug">
 div
-  h1 stakeholder 
+  h1 stakeholder of {{ stakeholderStore.getGesellschaft }}
+  div Gesellschafter {{ stakeholderStore.getGesellschafter }}
+  div Stakeholder {{ stakeholderStore.getStakeholder }} 
   Table(:selectedBookingsToRender="stakeholderStore.stakeholder")
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import logd from '../utils/logDebug'
 import { useStakeholderStore } from '~/stores/stakeholder'
 

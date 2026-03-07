@@ -2,18 +2,16 @@
 div Das Bussi Fahrtenbuch
   YearSwitch
   span(v-html="errors.text").red
-  Table(:selectedBookingsToRender="bookingsToRender", :konto="konto")
+  Table(:selectedBookingsToRender="bookingsToRender", :konto="konto", :sortOrder="-1"  )
 </template>
   
 <script setup lang="ts">
 logd("Hauptbuch Page Setup")
-import { useHauptbuchStore } from '../stores/hauptbuch'
 import { usePeriodenStore } from '@/stores/perioden'
 import { useAccountSystemStore } from '~/stores/accountSystem';
 import { checkBookingSyntax } from '~/composables/checkBookingSyntax';
 import logd from '../utils/logDebug';
 import {  onMounted,  getCurrentInstance} from 'vue'
-// const hauptbuch = reactive(useHauptbuchStore())
 
 const bStore = useAccountSystemStore()
 

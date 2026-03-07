@@ -1,5 +1,4 @@
-import { euroToNumber } from "../utils/euroToNumber"
-import { Account, Booking, BussiAccountSystem, HauptbuchBooking } from "@/types"
+import { Account, Booking, HauptbuchBooking } from "@/types"
 
 export const toEuro = (s: string): string => s.indexOf('€') > 0 ? s : parseFloat(s == '' ? '0' : s) + ' €'
 export const eToN = (s: string): number => parseFloat(s.replace('€', '').trim().replace('.', ''))
@@ -7,7 +6,12 @@ export const lToN = (s: string): number => parseFloat(s.replace('l', '').trim().
 export const toDINDate = (date: Date): string => date.toISOString().substring(0, 16).replace('T', ' ')
 
 export const isAusgleichsbuchung = (bk: HauptbuchBooking) => bk.key.indexOf("an: ") === 0
-export const isJahresBeitragsBuchung = (bk: HauptbuchBooking) => bk.key.indexOf("Jahresbeitrag") === 0  // 0 means it is the first word
+export const isJahresBeitragsBuchung = (bk: HauptbuchBooking) => bk.key.indexOf("Jahresbeitrag") === 0
+export const isSteuerBuchung = (bk: HauptbuchBooking) => bk.toString().indexOf("Steuer") >= 0
+export const isVersicherungsBuchung = (bk: HauptbuchBooking) => bk.toString().indexOf("Versicherung") >= 0
+export const reverseBooking = (from: Account, to: Account, b = true): [Account, Account] => b ? [to, from] : [from, to];
+
+
 // identify Tanken by the two following things. Amount has been payed and liters >> 0
 export const bookingType = (booking: HauptbuchBooking) => {
   if (booking.amount > 0 && booking.liters > 0) return "Tanken"
@@ -15,7 +19,7 @@ export const bookingType = (booking: HauptbuchBooking) => {
   if (booking.amount == 0 && booking.kmSinceLastEntry > 0) return "Fahren"
   return "Unbekannt"
 }
-export const bookingIsTanken = (booking: HauptbuchBooking) => (booking.amount > 0) && (booking.liters > 0)
+export const isTanken = (booking: HauptbuchBooking) => (booking.amount > 0) && (booking.liters > 0)
 // find out, who has driven how many km since the last fuel fill-up
 export const whoHasDrivenHowManyKmSinceLastFill = (allBookingsOfPeriod: Array<HauptbuchBooking>, shStore: any): Object => {
   const kmSinceLastFill = new Object() as { [key: string]: number }
@@ -23,7 +27,7 @@ export const whoHasDrivenHowManyKmSinceLastFill = (allBookingsOfPeriod: Array<Ha
   //shStore.personen.forEach( (sh: string) => kmSinceLastFill[sh] = 0)
   allBookingsOfPeriod.forEach((b: HauptbuchBooking) => {
     // if buchung is Tanken, reset the km counter for all stakeholders
-    if (bookingIsTanken(b)) {
+    if (isTanken(b)) {
       shStore.personen.forEach((sh: string) => kmSinceLastFill[sh] = 0)
       return
     }

@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { HauptbuchBooking } from '~/types/bussitypes'
-import { bookingIsTanken } from '~/composables/bookingHelpers'
+import { isTanken } from '~/composables/bookingHelpers'
 
 export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {
   const allLiters = computed(() =>
@@ -18,7 +18,7 @@ export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {
   )
 
   const kmAtLastFuelfill = (): number => {
-    const tankBookings = bookings.value.filter(b => bookingIsTanken(b))
+    const tankBookings = bookings.value.filter(b => isTanken(b))
     if (tankBookings.length === 0) return 0
     return tankBookings[tankBookings.length - 1].km || 0
   }

@@ -11,13 +11,13 @@ nav.menu
     br
     // Nutze @click.native oder einfach @click auf dem NuxtLink
     span.burgerMenuText
-      NuxtLink(to="/" @click="closeMenu") home
+      NuxtLink(to="/" @click="closeMenu") home 
     span.burgerMenuText
       NuxtLink(to="/fahrtenbucheintrag" @click="closeMenu") *eintragen*
     span.burgerMenuText
       NuxtLink(to="/fbeloeschen" @click="closeMenu") löschen
     span.burgerMenuText
-      NuxtLink(to="/balance" @click="closeMenu") balance
+      NuxtLink(to="/balance" @click="closeMenu") balance 
     span.burgerMenuText
       NuxtLink(to="/stakeholder" @click="closeMenu") stakeholder
     span.burgerMenuText
@@ -32,6 +32,42 @@ nav.menu
 const djcheckbox = ref(false)
 // Setzt das Menü explizit auf geschlossen
 const closeMenu = () => djcheckbox.value = false
+
+import { onKeyStroke } from '@vueuse/core'
+import { useRouter } from 'vue-router'
+const router = useRouter() // Hier definierst du die Konstante 'router'
+
+onKeyStroke(['b', 'B'], (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    router.push('/balance')
+  }
+})
+onKeyStroke(['h', 'H'], (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    router.push('/hauptbuch')
+  }
+})
+onKeyStroke(['s', 'S'], (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    router.push('/stakeholder')
+  }
+})
+onKeyStroke(['a', 'A'], (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    router.push('/accounts')
+  }
+})
+// F10
+onKeyStroke(['F10', 'E'], (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    router.push('/fahrtenbucheintrag')
+  }
+})
 </script>
 
 
