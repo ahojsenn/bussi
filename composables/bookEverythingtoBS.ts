@@ -47,6 +47,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
   let literSinceLastVollgetankt = allBookingsOfPeriod.length > 0 ? allBookingsOfPeriod[0].liters || 0 : 0
   let verbrauchForStatsAccounts = 0
   for (const [index, booking] of allBookingsOfPeriod.entries()) {
+    let sollAccount, habenAccount = null as Account | null
+
     // if "Tanken" fill benzinpreis and verbrauch, for better statistics
     if (bookingHelpers.isTanken(booking) || booking.liters > 0) {
       literSinceLastVollgetankt += booking.liters
@@ -65,31 +67,31 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
       }
 
       // Benzinpreis aktualisieren
-      const from = bs.findAccount(companyName, "Benzinpreis")
-      const to = bs.findAccount(companyName, "Benzinpreis")
-      if (from === bs.Errors || to === bs.Errors) {
-        console.error("bookEverythingtoBS: Fehler, Benzinpreis Konto nicht gefunden ", from, to)
+      sollAccount = bs.findAccount(companyName, "Benzinpreis")
+      habenAccount = bs.findAccount(companyName, "Benzinpreis")
+      if (sollAccount === bs.Errors || habenAccount === bs.Errors) {
+        console.error("bookEverythingtoBS: Fehler, Benzinpreis Konto nicht gefunden ", sollAccount, habenAccount)
         continue
       }
       let text = "Benzinpreis: " + benzinpreis + " €/l, Verbrauch: " + verbrauchForStatsAccounts + " l/100km"
       text += "<br>km: " + booking.km
-      let bk = new Booking(booking.nr, booking.date, 0, benzinpreis, text, benzinpreis, 0, from.id, to.id)
-      book(bk, from, to)
+      let bk = new Booking(booking.nr, booking.date, 0, benzinpreis, text, benzinpreis, 0, sollAccount.id, habenAccount.id)
+      book(bk, sollAccount, habenAccount)
 
       // now book the verbrauch to the account "Bussi", "Verbrauch"
       // but only, if vollgetankt wurde, because otherwise the Verbrauch is not known and we cannot book it, because it is only an estimate based on the previous bookings
       if (vollgetankt) {
-        const from1 = bs.findAccount(companyName, "Verbrauch")
-        const to1 = bs.findAccount(companyName, "Verbrauch")
-        if (from1 === bs.Errors || to1 === bs.Errors) {
-          console.error("bookEverythingtoBS: Fehler, Verbrauch Konto nicht gefunden ", from1, to1)
+        sollAccount = bs.findAccount(companyName, "Verbrauch")
+        habenAccount = bs.findAccount(companyName, "Verbrauch")
+        if (sollAccount === bs.Errors || habenAccount === bs.Errors) {
+          console.error("bookEverythingtoBS: Fehler, Verbrauch Konto nicht gefunden ", sollAccount, habenAccount)
           continue
         }
         let text = vollgetankt ? "Vollgetankt: Ja, " : "Vollgetankt: Nein, "
         text += "<br>Verbrauch: " + verbrauchForStatsAccounts + " l/100km, Benzinpreis: " + benzinpreis + " €/l"
           + " at km: " + booking.km
-        let bk1 = new Booking(booking.nr, booking.date, 0, verbrauchForStatsAccounts, text, verbrauchForStatsAccounts, 0, from1.id, to1.id)
-        book(bk1, from1, to1)
+        let bk1 = new Booking(booking.nr, booking.date, 0, verbrauchForStatsAccounts, text, verbrauchForStatsAccounts, 0, sollAccount.id, habenAccount.id)
+        book(bk1, sollAccount, habenAccount)
       }
     }
   }
@@ -100,6 +102,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
   logd("bookEverythingtoBS: ", perioden?.currentPeriod, "::", allBookingsOfPeriod)
   let lastBooking = allBookingsOfPeriod[0];
   for (const [index, booking] of allBookingsOfPeriod.entries()) {
+    let sollAccount, habenAccount = null as Account | null
+
     isFoL(index) ?? logd("bookEverythingtoBS starting: ", index, booking.account)
     let bookingError = checkBookingSyntax(booking, lastBooking)
     lastBooking = booking
@@ -116,38 +120,38 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
       let bookingWasUsed = false
       const splitAccount = split.trim()
 
-      // Jahresbeitrag buchen oder
-      // Steuerbuchungen oder Versicherungsbuchungen,
+      // geschuldeter Jahresbeitrag buchen oder
       // von Konto 4510
       // auf Konto 1800 bzw das Teilhaberkonto äquivalent
-      if (
-        bookingHelpers.isJahresBeitragsBuchung(booking)
-        || bookingHelpers.isSteuerBuchung(booking)
-        || bookingHelpers.isVersicherungsBuchung(booking)
-      ) {
-        let from = bs.getAccountById(4510)
-        let to = bs.findAccount(splitAccount, "Verrechnungskonto")
-
-        // if it is steuerbuchung oder versicherungsbuchung then reverse from and to, because the money fließt in die andere Richtung als bei Jahresbeitrag
-        if (bookingHelpers.isSteuerBuchung(booking) || bookingHelpers.isVersicherungsBuchung(booking)) {
-          [from, to] = [to, from]
-        }
-
+      if (bookingHelpers.isJahresBeitragsBuchung(booking)) {
+        sollAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
+        habenAccount = bs.getAccountById(4510)
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + ", " + booking.description + ", " + betrag
-        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
+        bookingWasUsed = true
+      }
+
+      // Steuerbuchungen oder Versicherungsbuchungen,
+      if (bookingHelpers.isSteuerBuchung(booking) || bookingHelpers.isVersicherungsBuchung(booking)) {
+        sollAccount = bs.getAccountById(4510)
+        habenAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
+        const betrag = euroToNumber(booking.amount) / nSplits
+        const text = booking.account + ", " + booking.description + ", " + betrag
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
         bookingWasUsed = true
       }
 
       // Ausgleichsbuchungen durchführen, die erkennt man am "an: "+Stakeholder im key
       if (bookingHelpers.isAusgleichsbuchung(booking)) {
-        const from = bs.findAccount(splitAccount, "Verrechnungskonto")
-        const to = bs.findAccount(booking.key.slice(4), "Verrechnungskonto")  // slice(4), weil "an: " 4 Characters hat...
+        sollAccount = bs.findAccount(booking.key.slice(4), "Verrechnungskonto")  // slice(4), weil "an: " 4 Characters hat...
+        habenAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + " Ausgleichszahlung an " + booking.key.slice(4) + " " + betrag
-        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
         bookingWasUsed = true
         // logd("bookEverythingtoBS: Ausgleichszahlung gefunden ", booking.key, booking.key.slice(4), from, to, bk)
       }
@@ -157,16 +161,16 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
       const reparatur = (b: HauptbuchBooking): boolean => +b.key > 0 // this is a positive number
         || b.toString().indexOf("Reparatur") > -1 // or it has the word "Reparatur" in it
       if (reparatur(booking)) {
-        const from = bs.findAccount(splitAccount, "Verrechnungskonto")
-        const to = bs.getAccountById(4550)
+        sollAccount = bs.getAccountById(4550)
+        habenAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
         const betrag = euroToNumber(booking.amount) / nSplits
         const text = booking.account + " Reparatur "
           + booking.description + " "
           + betrag
           + " " + booking.amount
         //+ "<br> verteilt auf "+ booking.key + " km"
-        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
         bookingWasUsed = true
       }
 
@@ -180,8 +184,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         if (perioden && kilometerWurdenGefahren(booking) > 0) {
           // Kilometer wurden gefahren 
           // Kilometer verbuchen auf Konto "Kilometer", von splitAccount --> companyAccount, mit Beschreibung, wie viele Kilometer gefahren wurden, von wann bis wann, und mit welchem Verbrauch und Benzin
-          const from = bs.findAccount(companyName, "Kilometer")
-          const to = bs.findAccount(splitAccount, "Kilometer")
+          sollAccount = bs.findAccount(companyName, "Kilometer")
+          habenAccount = bs.findAccount(splitAccount, "Kilometer")
           const km = booking.kmSinceLastEntry / nSplits
           const kmEnde = +booking.km
           const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
@@ -195,8 +199,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
             + "<br>Benzingeld: " + benzingeld + " € = " + km + " km *" + Math.round(100 * benzingeld / km) / 100 + " €/km"
             + "<br>Reparaturgeld: " + reppausch + " € = " + km + " km *" + Math.round(100 * reppausch / km) / 100 + " €/km "
             + "<br>km: " + kmStart + "-" + kmEnde
-          bk = new Booking(booking.nr, booking.date, km, 0, text, km, 0, from.id, to.id)
-          book(bk, from, to)
+          bk = new Booking(booking.nr, booking.date, km, 0, text, km, 0, sollAccount.id, habenAccount.id)
+          book(bk, sollAccount, habenAccount)
 
 
           // set this to true only, if there is no amount in booking.amount
@@ -204,31 +208,31 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           if (booking.amount == 0) bookingWasUsed = true
 
           //nun Benzingeld verbuchen 
-          const from1 = bs.getAccountById(4530)
-          const to1 = bs.findAccount(splitAccount, "Verrechnungskonto")
+          sollAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
+          habenAccount = bs.getAccountById(4530)
           const text1 = splitAccount + " fuhr " + km + " km"
             + "<br>Benzingeld: " + benzingeld + " € = " + Math.round(100 * benzingeld / km) / 100 + " €/km"
             + "<br>km: " + kmStart + "-" + kmEnde
-          bk = new Booking(booking.nr, booking.date, 0, benzingeld, text1, benzingeld, 0, from1.id, to1.id)
-          book(bk, from1, to1)
+          bk = new Booking(booking.nr, booking.date, 0, benzingeld, text1, benzingeld, 0, sollAccount.id, habenAccount.id)
+          book(bk, sollAccount, habenAccount)
 
 
           // nun Reparaturpauschale verbuchen
-          const from2 = bs.getAccountById(4550)
-          const to2 = bs.findAccount(splitAccount, "Verrechnungskonto")
+          sollAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
+          habenAccount = bs.getAccountById(4550)
           let text2 = "Reparaturpauschale " + perioden.reparaturpauschale(bk_year) + " €/km * " + km + " km "
             + "= " + reppausch + " € : " + splitAccount + " --> " + companyName
-          bk = new Booking(booking.nr, booking.date, 0, reppausch, text2, reppausch, 0, from2.id, to2.id)
-          book(bk, from2, to2)
+          bk = new Booking(booking.nr, booking.date, 0, reppausch, text2, reppausch, 0, sollAccount.id, habenAccount.id)
+          book(bk, sollAccount, habenAccount)
 
           // Statistikkonnto LiterKraftstoff bebuchen
-          const to4 = bs.findAccount(companyName, "LiterKraftstoff")
-          const from4 = bs.findAccount(splitAccount, "LiterKraftstoff")
-          const verbrauchteLiter = Math.round(100 * km * actualVerbrauch / 100) / 100
-          const text4 = splitAccount + " is " + booking.kmSinceLastEntry / nSplits + " gefahnren, "
+          sollAccount = bs.findAccount(companyName, "LiterKraftstoff")
+          habenAccount = bs.findAccount(splitAccount, "LiterKraftstoff")
+          const verbrauchteLiter = Math.round(km * actualVerbrauch) / 100
+          const text4 = splitAccount + " is " + booking.kmSinceLastEntry / nSplits + " gefahren, "
             + "<br>hat also " + verbrauchteLiter + " Liter verbraucht" + " bei " + actualVerbrauch + " l/100km "
-          bk = new Booking(booking.nr, booking.date, 0, verbrauchteLiter, text4, verbrauchteLiter, 0, from4.id, to4.id)
-          book(bk, from4, to4)
+          bk = new Booking(booking.nr, booking.date, 0, verbrauchteLiter, text4, verbrauchteLiter, 0, sollAccount.id, habenAccount.id)
+          book(bk, sollAccount, habenAccount)
 
         }
 
@@ -237,12 +241,11 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         // is vollgetankt? 
         // if the Saldo is around zero, then we can assume that the car was vollgetankt, 
         // otherwise not
+        sollAccount = bs.getAccountById(4530) // Ziel/Aufwand = SOLL 
+        habenAccount = bs.findAccount(splitAccount, "Verrechnungskonto") // Quelle/Auslage = HABEN       
         const amount = Math.round(100 * euroToNumber(booking.amount)) / 100
-        // Das Verrechnungskonto ist die QUELLE (Haben), weil der Fahrer das Geld gibt.
-        const from = bs.findAccount(splitAccount, "Verrechnungskonto")
-        // Das Kostenkonto 4530 ist das ZIEL (Soll), weil dort der Aufwand verbucht wird.
-        const to = bs.getAccountById(4530)
-        const text = splitAccount + " tankte: " + amount / nSplits + "€, " + booking.liters / nSplits + " Liter, "
+        const text = splitAccount + " tankte: " + amount / nSplits + "€, " 
+          + booking.liters / nSplits + " Liter, "    
           + "<br>Wer: " + booking.account
           + "<br>Vollgetankt: " + (vollgetankt ? "Ja" : "Nein")
           + "<br>Verbrauch: " + actualVerbrauch + " l/100km, "
@@ -250,18 +253,18 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
         const betrag = euroToNumber(booking.amount) / nSplits
         const kmEnde = +booking.km
         const kmStart = kmEnde - booking.kmSinceLastEntry // parseFloat(booking.kmSinceLastEntry || "0")
-        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
         bookingWasUsed = true
         // logd("bookEverythingToBS.Tanken: ", splits, bk, from, to, booking.kmSinceLastFuelFill)
         /* Tanken verbucht */
 
         // Tankstand auf Statistikkonto "LiterKraftstoff" verbuchen
-        const from2 = bs.findAccount(companyName, "LiterKraftstoff")
-        const to2 = bs.findAccount(splitAccount, "LiterKraftstoff")
+        sollAccount = bs.findAccount(companyName, "LiterKraftstoff")
+        habenAccount = bs.findAccount(splitAccount, "LiterKraftstoff")
         const text2 = splitAccount + " hat " + booking.liters / nSplits + " Liter getankt"
-        bk = new Booking(booking.nr, booking.date, 0, booking.liters / nSplits, text2, booking.liters / nSplits, 0, from2.id, to2.id)
-        book(bk, from2, to2)
+        bk = new Booking(booking.nr, booking.date, 0, booking.liters / nSplits, text2, booking.liters / nSplits, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
       }
 
 
@@ -282,55 +285,21 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
 
       if (isAusgleichszahlung(booking)) {
         //logd("Ausgleichszahlung: ", booking)
-        const from = bs.findAccount(splitAccount, "Verrechnungskonto")
         const receipient = booking.key.split(" ")[1]
-        const to = bs.findAccount(receipient, "Verrechnungskonto")
+        sollAccount = bs.findAccount(receipient, "Verrechnungskonto")
+        habenAccount = bs.findAccount(splitAccount, "Verrechnungskonto")
         const text = booking.account + "-->" + receipient + ": " + booking.description + " " + euroToNumber(booking.amount) / nSplits + " " + booking.amount
         const betrag = euroToNumber(booking.amount) / nSplits
-        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, betrag, text, betrag, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
         bookingWasUsed = true
       }
 
       const jahresendbuchung = (b: HauptbuchBooking): boolean => (b.key.toLowerCase() === "jahresendbuchung")
       if (jahresendbuchung(booking)) {
-
         // disable for now
         bookingWasUsed = true
         break
-
-
-        // const splitLines = (t: string) => t.split(/\r\n|\r|\n/)
-        // booking has description with sender:senderaccount  ->  receiver:receiveraccount
-        const rsplit = booking.description.match('[A-Za-z0-9_.]*:[A-Za-z0-9_.]*.[0-9]* -> [A-Za-z0-9_.]*:[A-Za-z0-9_.]*.[0-9]*')
-        const bookingdescr = rsplit ? rsplit[0] : ""
-        // logd("jahresendbuchung: ", booking.description, bookingdescr, rsplit)
-        if (bookingdescr === "") {
-          bookingError += "malformed Jahresendbuchung, expected something like 'Dagmar:Konto 1 -> Bussi:Konto 1' "
-          // return bs
-        }
-        else {
-          const sender = bookingdescr.split(" -> ")[0].split(":")[0]
-          // logd("jahresendbuchung: sender", sender, euroToNumber(booking.amount))
-          const receiver = bookingdescr.split(" -> ")[1].split(":")[0]
-          let senderaccount = bookingdescr.split(" -> ")[0].split(":")[1]
-          let receiveraccount = bookingdescr.split(" -> ")[1].split(":")[1]
-          // falls senderaccount oder receiveraccount "Ausgleichszahlungen" heißt, dann umbenennen in "Verrechnungskonto", damit die Buchung gefunden wird
-          if (senderaccount === "Ausgleichszahlungen") senderaccount = "Verrechnungskonto"
-          if (receiveraccount === "Ausgleichszahlungen") receiveraccount = "Verrechnungskonto"
-          // sender und receiver haben kein Konto 9000, fehler in diesem fall werden
-          // in der Fehlertabelle gebucht, damit die Jahresendbuchung trotzdem in BS ankommt und die Fehler sichtbar werden
-          if (bs.findAccount(sender, senderaccount) === bs.Errors || bs.findAccount(receiver, receiveraccount) === bs.Errors) {
-            bookingError += "Konto nicht gefunden für sender oder receiver in Jahresendbuchung: " + sender + ":" + senderaccount + " -> " + receiver + ":" + receiveraccount
-          } else {
-            const from = bs.findAccount(sender, senderaccount)
-            const to = bs.findAccount(receiver, receiveraccount)
-            const betrag = booking.amount
-            bk = new Booking(booking.nr, booking.date, 0, betrag, booking.description, betrag, 0, from.id, to.id)
-            book(bk, from, to)
-            bookingWasUsed = true
-          }
-        }
       }
 
       /* Nullbuchung ignorieren */
@@ -345,8 +314,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
       if (!bookingWasUsed) bookingError = "booking was not used<br>" + bookingError
       if (bookingError != "") {
         // logd("Fehler: ", booking.amount, " : ", booking.liters)
-        const from = bs.Errors
-        const to = bs.Errors1
+        sollAccount = bs.Errors
+        habenAccount = bs.Errors1
         const text = booking.account + " Konto 1 " + booking.description + " "
           + "<br> amount:" + booking.amount + " " + euroToNumber(booking.amount)
           + "<br> kmSinceLastEntry:" + booking.kmSinceLastEntry
@@ -354,8 +323,8 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
           + "<br> booking:" + JSON.stringify(booking)
           + "<br> bookingType:" + bookingHelpers.bookingType(booking)
           + "<br> Error:" + bookingError
-        bk = new Booking(booking.nr, booking.date, 0, booking.amount, text, booking.amount, 0, from.id, to.id)
-        book(bk, from, to)
+        bk = new Booking(booking.nr, booking.date, 0, booking.amount, text, booking.amount, 0, sollAccount.id, habenAccount.id)
+        book(bk, sollAccount, habenAccount)
       }
 
       // logd("bookEverathingToBS: ", index, booking)

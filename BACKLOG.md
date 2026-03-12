@@ -1,18 +1,16 @@
 # my Backlog
 - Gäbe es eine DSL für die Bilanzierung?
 - Änderungswünsche und Bugs is Fahrtenbuch eintragen
-- Tanke nachträglich eintragen ermöglichen...
-- check again if splits.length = nSplits is correctly done in every booking
-
-
-- Zahlungsvorschläge zum Salednausgleich...
-
 
 
 # doing
+- Zahlungsvorschläge zum Salednausgleich...
 
+  
 
 # done
+- Tanke nachträglich eintragen ermöglichen...
+- check again if splits.length = nSplits is correctly done in every booking
 - "nicht vollgetankt" als default...
 - neues accountsystem verwenden
   - in accounts --> done

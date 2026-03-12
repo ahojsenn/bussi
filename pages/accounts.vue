@@ -34,7 +34,8 @@ const asAccounts = computed(() =>
       id: account.id,
       name: account.name,
       owner: account.owner,
-      bookingCount: account.bookings.length
+      bookingCount: account.bookings.length,
+      accountType: account.accountType
     }
   })
 })

@@ -76,7 +76,7 @@ export type RawAccount = {
   Name: string
   Bezeichnung: string
   Einheit: string
-  Kontotyp: Kontenart
+  Art: Kontenart
   Kontonummer: number
 }
 

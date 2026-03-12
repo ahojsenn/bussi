@@ -4,14 +4,6 @@ div
   h1 Bilanz {{ perioden.currentPeriod }}, {{ allBookingsOfPeriod.length }} Hauptbuchbuchungen
   div(v-if="ERRORS.bookings.length > 0") 
     a.errors(href='#' @click="selectToRender(ERRORS)")  Errors:  {{ ERRORS.bookings.length  }}
-  
-  div Gesellschaft: {{ gesellschaft }}
-  div Kilometer: {{ formatKm(kmByStakeholderAndPeriod(gesellschaft, perioden.currentPeriod)) }}
-  div Benzin: {{ formatLiter(allLiter()) }}
-  div CO2: {{ formatCO2(tonnenCO2()) }}  
-  div Verbrauch: {{ formatConsumption(verbrauchOverall()) }}
-  div Reparaturpauschale: {{perioden.reparaturpauschale(perioden.currentPeriod)}} €/km
-  div &nbsp;
 
   div(v-if="toRender.bookings.length != 0") 
     .center
@@ -20,40 +12,54 @@ div
       div Konto: {{ toRender.name }} {{ toRender.bookings.length }} Buchungen
       Table(:selectedBookingsToRender="toRender.bookings" :konto="toRender.name" )
 
-  div(v-else)
-    table
-      tbody
-        tr(v-for="sh in stakeholderNames")
-          td {{ sh }}
-            a(href="#" @click="selectToRender(asStore.accountSystem.findAccount(sh,'Kilometer'))") 
-              div {{formatKm(kmByStakeholderAndPeriod(sh, perioden.currentPeriod))}}
-            div 
-              b 
-          td 
-            table.inner(:style="{width: '100%'}")
-              tbody
-                tr
-                  th.inner Kontobezeichnung {{sh}} 
-                  th.innter #Buchungen
-                  th.inner Saldo 
-                  th.inner.grey Soll
-                  th.inner.grey Haben
-                tr.inner(
-                  v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') \
-                    && (sh === acc.owner) && (acc.bookings.length > 0))  " )
-                  td.inner 
-                    a(href="#" @click="selectToRender(asStore.accountSystem.getAccountById(a.id))") 
-                      span {{ a.id }} :: {{ a.name }}
-                    span  &nbsp;&nbsp;&nbsp;&nbsp;
-                  td.inner {{ a.nbookings(perioden.currentPeriod) }}
-                  template(v-if="a.unit === '€'")  
-                    td.inner {{ a.saldoPeriod(perioden.currentPeriod) }} {{a.unit|| ""}}
-                    td.inner.grey {{ a.saldoSoll(perioden.currentPeriod) }}
-                    td.inner.grey {{ a.saldoHaben(perioden.currentPeriod) }}  
-                  template(v-else)
-                    td &nbsp;
-                    td &nbsp;
-                    td &nbsp;
+  div.bilanz-wrapper(v-else)
+    // --- LINKE SPALTE: Nur die Gesellschaft ---
+    div.left-column
+      table.bilanz-table
+        tbody
+          tr
+            th.inner
+              b {{ gesellschaft }} Gesellschaft
+              div.small
+                div km: {{ formatKm(kmByStakeholderAndPeriod(gesellschaft, perioden.currentPeriod)) }} 
+                div Benzin: {{ formatLiter(allLiter()) }}
+                div CO2: {{ formatCO2(tonnenCO2()) }}  
+                div Verbrauch: {{ formatConsumption(verbrauchOverall()) }}
+                div Reparaturpauschale: {{ perioden.reparaturpauschale(perioden.currentPeriod) }} €/km
+            th.inner 
+              b Saldo
+        
+          tr.inner(
+            v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') && (gesellschaft === acc.owner) && (acc.bookings.length > 0))"
+          )
+            td.inner 
+              a(href="#" @click="selectToRender(asStore.accountSystem.getAccountById(a.id))") 
+                span {{ a.id }} :: {{ a.name }}
+                span.small &nbsp;({{ a.bookings.length }})
+            td.inner.right-align(v-if="a.unit === '€'") {{ a.saldoPeriod(perioden.currentPeriod) }} €
+            td(v-else) &nbsp;
+
+    // --- RECHTE SPALTE: Alle Stakeholder untereinander ---
+    div.right-column
+      table.bilanz-table(v-for="sh in gesellschafter" :key="sh")
+        tbody
+          tr
+            th.inner
+              b Stakeholder {{ sh }}
+              div.small km: {{ formatKm(kmByStakeholderAndPeriod(sh, perioden.currentPeriod)) }}
+            th.inner 
+              b Saldo
+        
+          tr.inner(
+            v-for="a in accounts.filter(acc => (acc.Name !== 'Kilometer') && (sh === acc.owner) && (acc.bookings.length > 0))"
+          )
+            td.inner 
+              a(href="#" @click="selectToRender(asStore.accountSystem.getAccountById(a.id))") 
+                span {{ a.id }} :: {{ a.name }}
+                span.small &nbsp;({{ a.bookings.length }})
+            td.inner.right-align(v-if="a.unit === '€'") {{ a.saldoPeriod(perioden.currentPeriod) }} €
+            td(v-else) &nbsp;
+
   br            
   br
   div Saldenausgleichsbuchungen (Buchungen mit Konto "Saldenausgleich"):
@@ -64,13 +70,13 @@ div
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, computed} from 'vue'
-import {Account, HauptbuchBooking} from '@/types'
+import { reactive, onMounted, computed } from 'vue'
+import { Account, HauptbuchBooking } from '@/types'
 import { AccountSystemClass, useAccountSystemStore } from '../stores/accountSystem'
 import { Booking } from '@/types'
-import {book} from '../composables/book'
+import { book } from '../composables/book'
 import logd from '../utils/logDebug';
-import {bookEverythingtoBS} from '../composables/bookEverythingtoBS'
+import { bookEverythingtoBS } from '../composables/bookEverythingtoBS'
 import { euroString } from '../composables/bookingHelpers';
 
 
@@ -82,7 +88,7 @@ const selectedAccount = ref<Account | null>(null)
 const toRender = computed(() => {
   const account = selectedAccount.value
   const period = asStore.accountSystem?.periodenStore?.currentPeriod
-  
+
   if (!account || !period) {
     return { bookings: [], name: "", account: account }
   }
@@ -103,7 +109,7 @@ const toRender = computed(() => {
   return {
     bookings: bookingsWithSaldo,
     name: `${account.id} ${account.owner} ${account.name}`,
-    account: account 
+    account: account
   }
 })
 
@@ -114,10 +120,10 @@ const selectToRender = (account: Account) => {
 
 const resetToRender = () => {
   selectedAccount.value = null
-} 
+}
 
 // get bookings of an account by period like in hauptbuch.vue
-const filterBookingsByPeriod = computed(() => (bookings: any[], period: string) : Array<any> => {
+const filterBookingsByPeriod = computed(() => (bookings: any[], period: string): Array<any> => {
   let r = bookings
   // logd("filterBookingsByPeriod: period= ", period, " bookings.length= ", bookings.length, bookings[1])
   // period cound be "2024", "2024-Q1", "alles bis 2025", "alles bis 2024-Q3", "2024-Q2 bis 2024-Q4" etc.
@@ -125,17 +131,17 @@ const filterBookingsByPeriod = computed(() => (bookings: any[], period: string) 
   if (period && period.indexOf('bis') > 0) {
     const date = period.split('bis')[1].trim()
     r = bookings.filter((e: any) => e.date.substring(0, 4) <= date)
-  } else if (isNaN(Number(period))) {    
+  } else if (isNaN(Number(period))) {
     // ignore the selector and do not filter, i.e. take all values
-  }else {
+  } else {
     r = bookings.filter((e: any) => e.date.substring(0, 4) === period)
   }
   return r
-})  
+})
 
 
 // Apple + Enter to reset the Table view
-onMounted(() => {window.addEventListener('keydown', (e)=>{if (e.key === 'Enter' && e.metaKey) resetToRender()}) })
+onMounted(() => { window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.metaKey) resetToRender() }) })
 
 // define the stores
 const asStore = useAccountSystemStore()
@@ -146,120 +152,220 @@ if (!asStore.accountSystem) {
 }
 const shStore = asStore.accountSystem?.shStore
 const pStore = asStore.accountSystem?.periodenStore
-const stakeholder =  computed(() => shStore?.stakeholder || [])
+const stakeholder = computed(() => shStore?.stakeholder || [])
 const gesellschaft = computed(() => shStore?.getGesellschaft || "Gesellschaft")
-const accountStore = computed(() => asStore.accountSystem?.aStore || [])
-const accounts = computed(() =>  asStore.accountSystem?.accounts.sort((a, b) => a.id - b.id ) || [])  
+const gesellschafter = computed(() => shStore?.getGesellschafter)
+
+const accounts = computed(() => asStore.accountSystem?.accounts.sort((a, b) => a.id - b.id) || [])
 const stakeholderNames = shStore?.verteilungPersonen
 const allBookingsOfPeriod = computed(() => {
   const r = asStore.accountSystem?.hbStore?.bookings || []
   return filterBookingsByPeriod.value(r, asStore.accountSystem?.periodenStore?.currentPeriod || "")
-  })    
+})
 
 const sourceBS = toRaw(asStore.accountSystem)
 
-const perioden = computed(() => sourceBS?.periodenStore || [] )
+const perioden = computed(() => sourceBS?.periodenStore || [])
 const currentPeriod = computed(() => sourceBS?.periodenStore?.currentPeriod)
-const companyName = computed(() => sourceBS?.shStore?.getGesellschaft || "Gesellschaft")  
+const companyName = computed(() => sourceBS?.shStore?.getGesellschaft || "Gesellschaft")
 
 const ERRORS = asStore.accountSystem?.Errors
 
 
-/* now we have all bookings of the current period */
-if (!sourceBS) {
-  logd("Error: account system is not initialized")
-} else if (!ERRORS) {
-  logd("Error: Errors account not found in account system")
-} else if (!pStore ) {
-  logd("Error: perioden not found in account system")
-} else if (!shStore) {
-  logd("Error: shStore not found in account system")
-} else {
-  logd("allBookingsOfPeriod ", allBookingsOfPeriod)
-  const calculatedBS = bookEverythingtoBS(sourceBS)
-  balanceSalden(calculatedBS)
-  //logd("bs after bookEverythingtoBS and balance: ", calculatedBS)
+// In deinem AccountSystem / Store
+watch(
+  () => asStore.accountSystem?.periodenStore?.currentPeriod, // Sicherer Pfad
+  async (newPeriod) => {
+    if (!newPeriod || !asStore.accountSystem) return;
 
-  // 3. Markiere das Ergebnis als 'Raw', falls du verhindern willst, 
-  // dass Vue JEDES Unterobjekt tiefen-beobachtet (Performance-Boost)
-  const finalBS = markRaw(calculatedBS)
+    const bs = asStore.accountSystem;
 
-  // 4. Erst jetzt den Store aktualisieren -> Trigger nur 1x die UI
-  asStore.accountSystem = finalBS
-}
+    // 1. ZENTRALE BEREINIGUNG (Wichtig!)
+    // Wir löschen die AB-Buchungen an der Quelle
+    if (bs.hbStore) {
+      bs.hbStore.bookings = bs.hbStore.bookings.filter(b => !b.nr.startsWith("AB-"));
+    }
 
-const allKm = () => kmByStakeholderAndPeriod(gesellschaft.value, currentPeriod.value || "") 
+    // 2. Konten leeren
+    bs.accounts.forEach(konto => {
+      konto.bookings = [];
+    });
+
+    // 3. Neu berechnen
+    bookEverythingtoBS(bs);
+    balanceSalden(bs);
+
+    logd(`✅ Bilanz für ${newPeriod} erfolgreich aktualisiert.`);
+  },
+  { immediate: true }
+);
+
+const allKm = () => kmByStakeholderAndPeriod(gesellschaft.value, currentPeriod.value || "")
 
 // berechne die km für einen stakeholder und einen Zeitraum, z.B. 2024 oder 2024-Q1 oder "alles bis 2024-Q3"
-const kmByStakeholderAndPeriod = (stakeholder: string, period: string) : number => {
+const kmByStakeholderAndPeriod = (stakeholder: string, period: string): number => {
   const account = asStore.accountSystem?.findAccount(stakeholder, 'Kilometer')
   if (!account) return -1
   const bookings = filterBookingsByPeriod.value(account.bookings, period)
-  return Math.abs(bookings.reduce((acc, cv:Booking) => acc + cv.amount, 0))
+  return Math.abs(bookings.reduce((acc, cv: Booking) => acc + cv.amount, 0))
 }
 
 
 const allLiter = () => Math.round(allBookingsOfPeriod.value.reduce((acc, b) => acc + b.liters, 0))
-const tonnenCO2 = () => Math.round(100*allLiter() * 2.37/1000)/100
-const verbrauchOverall = () => Math.round(allLiter() / allKm() *10000)/100  
+const tonnenCO2 = () => Math.round(100 * allLiter() * 2.37 / 1000) / 100
+const verbrauchOverall = () => Math.round(allLiter() / allKm() * 10000) / 100
 
 
 
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
-function balanceSalden (bs: AccountSystemClass) {
-  const shStore = bs.shStore
-  const perioden = bs.periodenStore?? []
-  const allBookingsOfPeriod = bs.hbStore?.bookings || []
-
-  // logd("balanceSalden. allBookingsOfPeriod ", allBookingsOfPeriod)
-  const bussiSaldo =  bs.saldierenEuro(bs.shStore?.getGesellschaft || "Gesellschaft") || 0  
-  // create an array of all stakeholders with their rest to pay (saldo - 1/n * bussiSaldo)
-  const stakeholdersSaldo = shStore?.personen.map((e: string) => {
-    const saldo = bs.saldierenEuro(e)+bussiSaldo/shStore.personen.length
-    return {name: e, saldo: saldo}
-  }) || []
-  // logd("balanceSalden. stakeholdersSaldo ", stakeholdersSaldo)
-  // book salden between personen until all salden of personen are equal
-  // start with the person with the lowest saldo that absolute value is  lowwer thatn the highest saldo
-  let maxIterations = 10
-  while (true && maxIterations-- > 0) {
-    const min = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo < e.saldo ? acc : e)
-    const max = stakeholdersSaldo.reduce((acc: any, e: any) => acc.saldo > e.saldo ? acc : e)
-    if (min.saldo >= 0.01) break // all salden are equal, but tolerate a one cent difference
-    if (max.saldo <= 0.01) break // all salden are equal, but tolerate a one cent difference
-    const amount = Math.min(-min.saldo, max.saldo)
-    const to = bs.Saldenausgleich
-    const from = bs.Errors
-    const cp = bs.periodenStore?.currentPeriod || "unknown period"
-    const text = "Ausgleichsbuchung Salden "
-      +"<br>"+cp+" "+from.owner+":"+from.name +" -> "+to.owner+":"+to.name
-      +"<br>Amount: "+euroString(amount)
-      +"<br>konkret:  "+from.owner+ " bekommt "+euroString(amount)+" von "+to.owner
-
-    const b = new Booking("9999",cp +"-12-31", 0, 0, text, amount, 0, from.id, to.id)
-
-    book (b, from, to )
-    min.saldo += amount
-    max.saldo -= amount
-    //logd("balanceSalden. min ", min, "max ", max)
+function balanceSalden(bs: AccountSystemClass) {
+  // 1. Abschluss der Erfolgskonten (GuV) auf 9090 Saldenausgleich
+  const saldenausgleich = bs.getAccountById(9090)
+  if (!saldenausgleich) {
+    logd("Error: Saldenausgleich account not found in account system")
+    return
   }
+  const erfolgskonten = bs.accounts.filter(a => a.id >= 4000 && a.id < 9000)
+  erfolgskonten.forEach((konto) => {
+    const currentPeriod = bs.periodenStore?.currentPeriod || "";
+    const saldo = konto.saldoPeriod(currentPeriod); // Saldo ist Haben - Soll
+    logd(`Abschluss ${konto.name}: Saldo = ${saldo} Math.abs(saldo) = ${Math.abs(saldo)} ${konto.unit || ""}`)
+
+    if (Math.abs(saldo) > 0.001) {
+      const absAmount = Math.abs(saldo);
+
+      const bookingTemplate: Booking = {
+        nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
+        date: new Date().toISOString().slice(0, 10),
+        description: `Abschluss ${konto.name} ${currentPeriod}, saldo: ${saldo} ${konto.unit || ""}`,
+        amount: absAmount,
+        quantity: 0,
+        soll: 0,  // Dummy-Wert, um TS zu beruhigen
+        haben: 0   // Dummy-Wert, um TS zu beruhigen
+      };
+
+      if (saldo < 0) {
+        // NEGATIVER SALDO (Soll ist größer, z.B. Tanken): 
+        // Wir müssen das KONTO im HABEN bebuchen, um es zu nullen.
+        // Das GEGENKONTO (9090) kriegt also das SOLL.
+        book(bookingTemplate, saldenausgleich, konto);
+      } else {
+        // POSITIVER SALDO (Haben ist größer, z.B. ein Ertrag):
+        // Wir müssen das KONTO im SOLL bebuchen, um es zu nullen.
+        // Das GEGENKONTO (9090) kriegt also das HABEN.
+        book(bookingTemplate, konto, saldenausgleich);
+      }
+    }
+  });
+
+  logd("Abschluss der Erfolgskonten auf 9090 abgeschlossen. Saldo von 9090: ", saldenausgleich)
+
+  // 2. Ermittlung des Ergebnisses (Verteilung)
+  logd("Ermittlung des Saldo von 9090 für die Verteilung auf Gesellschafterkonten...", pStore?.currentPeriod)
+  const saldo9090 = saldenausgleich.saldoPeriod(pStore?.currentPeriod || "");
+  logd("Saldo von 9090: ", saldo9090)
+  const gesellschafterkonten = bs.getBalanceSheetAccountsOfStakeholders()
+    // filter only "Verrechnungskonto" 
+    .filter(a => a.name.indexOf("Verrechnungskonto") > -1)
+  logd("saldo9090=", saldo9090, saldenausgleich, bs)
+  if (Math.abs(saldo9090) > 0.01) {
+    // Wir nehmen den absoluten Anteil pro Kopf
+    const absAnteil = Math.abs(saldo9090) / gesellschafterkonten.length;
+
+    gesellschafterkonten.forEach((konto) => {
+      const bookingTemplate: Booking = {
+        nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
+        date: new Date().toISOString().slice(0, 10),
+        description: `Umlage Bussi-Kosten ${bs.periodenStore?.currentPeriod || ""}`,
+        amount: absAnteil,
+        quantity: 0,
+        soll: 0, // Dummies für TS
+        haben: 0
+      };
+
+      if (saldo9090 < 0) {
+        // 9090 hat Soll-Überhang (Kosten)
+        // Abschluss: Gesellschafter ins SOLL (Belastung), 9090 ins HABEN (Ausgleich)
+        book(bookingTemplate, konto, saldenausgleich);
+      } else {
+        // 9090 hat Haben-Überhang (unwahrscheinlich, aber möglich bei Erträgen)
+        // Abschluss: 9090 ins SOLL, Gesellschafter ins HABEN (Gutschrift)
+        book(bookingTemplate, saldenausgleich, konto);
+      }
+    });
+  }
+
+  // 3. Abschluss der Bestandskonten auf 9000
+  bs.getBalanceSheetAccounts().forEach((konto) => {
+    const currentPeriod = bs.periodenStore?.currentPeriod || "";
+    const saldo = konto.saldoPeriod(currentPeriod); // Haben - Soll
+    const bilanzkonto = bs.getAccountById(9000);
+
+    if (Math.abs(saldo) > 0.001 && konto.unit === '€' && bilanzkonto) {
+      const absAmount = Math.abs(saldo);
+
+      const bookingTemplate: Booking = {
+        nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
+        date: new Date().toISOString().slice(0, 10),
+        description: `Bilanz-Abschluss: ${konto.name}`,
+        amount: absAmount,
+        quantity: 0,
+        soll: 0, // Nur für TS
+        haben: 0
+      };
+
+      if (saldo < 0) {
+        // FALL A: SOLL-Überschuss (z.B. Bank oder Schulden)
+        // Um das Konto zu nullen, muss es ins HABEN.
+        // Das bedeutet: 9000 ist SOLL, Konto ist HABEN.
+        book(bookingTemplate, bilanzkonto, konto);
+        logd(`Abschluss ${konto.name}: Soll-Überhang gelöscht via 9000(Soll) an ${konto.name}(Haben)`);
+      } else {
+        // FALL B: HABEN-Überschuss (z.B. Guthaben von Hannes)
+        // Um das Konto zu nullen, muss es ins SOLL.
+        // Das bedeutet: Konto ist SOLL, 9000 ist HABEN.
+        book(bookingTemplate, konto, bilanzkonto);
+        logd(`Abschluss ${konto.name}: Haben-Überhang gelöscht via ${konto.name}(Soll) an 9000(Haben)`);
+      }
+    }
+  });
+
+  const bilanzDifferenz = bs.getAccountById(9000)?.saldoPeriod(bs.periodenStore?.currentPeriod || "")
+  if (bilanzDifferenz !== 0) {
+    logd("Warnung: Nach Abschluss der Bestandskonten ist der Saldo von 9000 nicht 0! ", bilanzDifferenz)
+    console.log("--- FAHNDUNG NACH DEN " + bilanzDifferenz + "€ ---");
+    bs.accounts.forEach(a => {
+      const s = a.saldo();
+      if (Math.abs(s) > 0.01) {
+        // Wenn dieses Konto nicht 9000 ist, dann ist DAS hier der Grund!
+        console.log(`Konto ${a.id} (${a.name}): Rest-Saldo = ${s} €`);
+      }
+    });
+  }
+
   return bs
 }
 </script>
 
 
 <style scoped>
+.small {
+  font-size: smaller;
+}
+
 .grey {
   color: grey;
   border-radius: 6px;
   border-width: 0px;
 }
+
 th {
   font-weight: normal;
 }
+
 .inner {
-  background-color: rgba(0,0,0,0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
   border-radius: 6px;
 }
 
@@ -267,7 +373,7 @@ th {
   width: 40em;
 }
 
-.green{
+.green {
   background-color: green;
   color: yellow;
   border-radius: 6px;
@@ -278,6 +384,75 @@ th {
   background-color: red;
   color: yellow;
   border-radius: 6px;
-  border-width: 0px;}
+  border-width: 0px;
+}
 
+/* --- BILANZ-STYLES --- */
+.bilanz-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  /* Das sorgt für den Umbruch bei Platzmangel */
+  gap: 40px;
+  /* Etwas reduzierter Abstand für besseren Flow */
+  align-items: flex-start;
+}
+
+.left-column {
+  /* Erlaubt der Spalte zu wachsen (1) und zu schrumpfen (1) bei einer Basis von 350px */
+  flex: 1 1 350px;
+  border-right: 1px solid #ddd;
+  padding-right: 5px;
+  max-width: 600px;
+  /* Verhindert, dass die Gesellschaft auf Desktop zu breit wird */
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  /* Schönerer vertikaler Abstand zwischen Stakeholdern */
+  flex: 1 1 350px;
+  /* Nimmt sich den Rest, braucht aber min. 350px bevor es bricht */
+}
+
+/* --- Responsive Korrektur --- */
+@media (max-width: 800px) {
+
+  /* Schaltet auf einspaltig um, wenn es unter 1000px geht */
+  .left-column {
+    border-right: none;
+    /* Vertikale Linie entfernen */
+    border-bottom: 1px solid #ddd;
+    /* Horizontale Linie zur Trennung einfügen */
+    padding-right: 0;
+    padding-bottom: 30px;
+    flex: 1 1 100%;
+    /* Volle Breite erzwingen */
+    max-width: 100%;
+  }
+
+  .right-column {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .bilanz-wrapper {
+    gap: 30px;
+  }
+}
+
+.bilanz-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 3px;
+  border-radius: 8px;
+  padding: 5px;
+  /*background-color: rgba(255,255,255,0.5); /* Leichte Abhebung */
+}
+
+.right-align {
+  text-align: right;
+  font-weight: bold;
+}
 </style>

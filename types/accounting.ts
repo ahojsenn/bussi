@@ -2,6 +2,22 @@
 import { v4 as uuidv4 } from 'uuid'; // Falls du das npm-Paket 'uuid' nutzt
 
 export type Unit = '€' | 'EUR' | 'USD' | 'kg' | 'Liter' | '€/Liter' | 'Liter/100km' | 'km' | "Errors";
+export type AccountType =
+  | 'asset'      // Aktivkonto (Vermögen, z.B. Bank, Kasse, Auto)
+  | 'liability'  // Passivkonto (Verbindlichkeiten/Schulden, z.B. Darlehen)
+  | 'equity'     // Eigenkapitalkonto (Das Reinvermögen der Gemeinschaft)
+  | 'revenue'    // Ertragskonto (Einnahmen)
+  | 'expense'    // Aufwandskonto (Kosten, z.B. Tanken, Reparaturen)
+  | 'Aktivkonto'        // Aktivkonto (Vermögen, z.B. Bank, Kasse, Auto)
+  | 'Passivkonto'       // Passivkonto (Verbindlichkeiten/Schulden, z.B. Darlehen)
+  | 'Eigenkapitalkonto' // Eigenkapitalkonto (Das Reinvermögen der Gemeinschaft)
+  | 'Ertragskonto'      // Ertragskonto (Einnahmen)
+  | 'Aufwandskonto'     // Aufwandskonto (Kosten, z.B. Tanken, Reparaturen)
+  | 'System'
+  | 'Errors'
+  | 'Statistikkonto'
+  | 'Hilfskonto'
+
 
 // Nutze diesen sicheren Fallback:
 // id would like to be unique, but we don't want to rely on crypto.randomUUID() in case of non-HTTPS environments
@@ -54,11 +70,13 @@ export class Account {
   owner: string
   unit: Unit // = 'EUR' , unit for the quantity, e.g. 'km' for the kilometer account  
   bookings = [] as Array<Booking>
-  constructor(id: number, name: string, owner: string, unit: Unit) {
+  accountType: AccountType
+  constructor(id: number, name: string, owner: string, unit: Unit, accountType: AccountType) {
     this.id = id
     this.name = name
     this.owner = owner
     this.unit = unit
+    this.accountType = accountType
     this.bookings = []
   }
   nbookings(p: string): number {
@@ -77,11 +95,13 @@ export class Account {
     else return this.bookings.length
   }
   saldo(): number {
-    //logd("saldo: ", this.name, this.owner, this.soll, this.haben, "")
-    return Math.round(100 *
-      + this.bookings.reduce((acc, cv) => acc += cv.haben - cv.soll, 0)
-      //- this.soll.reduce((acc, cv) => acc += +cv.amount, 0) 
-    ) / 100
+    const rawSaldo = this.bookings.reduce((acc, cv) => {
+      // Wir berechnen den Netto-Effekt auf das Konto
+      return acc + (cv.haben - cv.soll);
+    }, 0);
+
+    // Rundung auf 2 Nachkommastellen
+    return Math.round(rawSaldo * 100) / 100;
   }
   saldoAmount(): number {
     return Math.round(100 *
@@ -94,12 +114,23 @@ export class Account {
     ) / 100
   }
   saldoY(year: string): number {
-    // this should also work with periods like 'über alles' or 'alles bis 2022'
-    return Number(year) ? Math.round(100 *
-      + this.bookings.filter(b => b.date.substring(0, 4) === year.toString())
-        .reduce((acc, cv) => acc += cv.haben - cv.soll, 0)
-    ) / 100
-      : this.saldo()
+    // 1. Sicherheit: Falls keine Buchungen da sind, 0 zurückgeben
+    if (!this.bookings) return 0;
+
+    const rawSaldo = this.bookings
+      .filter(b => {
+        // 2. Robusterer Check: Prüfen, ob b.date existiert und das Jahr matcht
+        return b.date && b.date.startsWith(year);
+      })
+      .reduce((acc, cv) => {
+        // 3. Präzision: Wir runden jeden Zwischenschritt auf 4 Stellen, 
+        // um Floating-Point-Fehler zu minimieren
+        const lineSaldo = (cv.haben || 0) - (cv.soll || 0);
+        return acc + lineSaldo;
+      }, 0);
+
+    // 4. Finale Rundung auf 2 Stellen
+    return Math.round(rawSaldo * 100) / 100;
   }
   saldoPeriod(p: string): number {
     // also ork with periods like 'über alles' or 'alles bis 2022'
@@ -112,8 +143,8 @@ export class Account {
       return this.saldoY(year)
     }
     // else if (p === 'yyyy') {
-    else if (Number(p)) {
-      return this.saldoY(p)
+    else if (Number(+p)) {
+      return this.saldoY(p.toString())
     }
     else return this.saldo()
   }

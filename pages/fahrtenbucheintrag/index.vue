@@ -139,27 +139,33 @@ const kmChange = (i: number) => {
   km.resetToMinimum(+lastbk.value.km)
 }
 
+// Computed Property für die Validierung des aktuellen Eintrags
 const validationResult = computed(() => {
   const bk = thisbk.value
   const bt = bookingtype.value
-  
+
   if (bt === 'Fahrt') {
     return validateFahrt(bk, km.withinRange(+lastbk.value.km))
   }
-  
+
   if (bt === 'Tanken') {
     bk.amount = +amount.value
     bk.fuelPriceInEuro = +amount.value / +liters.value
     bk.liters = +liters.value
     bk.consumption = consumption.calculateConsumption(+liters.value, bk.kmSinceLastFuelFill)
+    // set kmSinceLastFuelFill to 0 if vollgetankt is true, otherwise add the kmSinceLastEntry to it
+    const kmDrivenWithLiters = thisbk.value.liters / (consumption.averageConsumption.value / 100)
+    const kmOfLastFuelFill = lastbk.value.km - lastbk.value.kmSinceLastFuelFill
+    thisbk.value.kmSinceLastFuelFill = vollgetankt.value ? 0 : lastbk.value.kmSinceLastFuelFill + thisbk.value.kmSinceLastEntry - kmDrivenWithLiters
+
     return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption.value, vollgetankt.value, nachtrag.value)
   }
-  
+
   if (bt === 'Sonstiges') {
     bk.amount = +amount.value
     return validateSonstiges(bk)
   }
-  
+
   return { ok: false, result: 'Unbekannter Buchungstyp' }
 })
 
@@ -170,13 +176,13 @@ const onSubmit = async () => {
   thisbk.value.date = thisbk.value.date.toString()
   thisbk.value.kmSinceLastEntry = thisbk.value.km - lastbk.value.km
   thisbk.value.liters = 0
-  
+
   if (bookingtype.value === 'Tanken') {
     thisbk.value.liters = +((document.querySelector('input[name="liters"]') as HTMLInputElement)?.value || 0)
   }
-  
-  thisbk.value.consumption = (bookingtype.value === 'Tanken') 
-    ? (100 * +(thisbk.value.liters) / (km.kmDriven(+lastbk.value.km) + thisbk.value.kmSinceLastFuelFill)) 
+
+  thisbk.value.consumption = (bookingtype.value === 'Tanken')
+    ? (100 * +(thisbk.value.liters) / (km.kmDriven(+lastbk.value.km) + thisbk.value.kmSinceLastFuelFill))
     : 0
 
   const od = thisbk.value.description
@@ -194,7 +200,7 @@ const onSubmit = async () => {
   thisbk.value.kmSinceLastFuelFill = vollgetankt.value ? 0 : lastbk.value.kmSinceLastFuelFill + thisbk.value.kmSinceLastEntry - kmDrivenWithLiters
 
   console.log('onSubmit', thisbk.value)
-  
+
   if (validationResult.value.ok) {
     lastSubmitted.value += thisbk.value.description + "<br>" + JSON.stringify(thisbk.value)
 
@@ -202,26 +208,26 @@ const onSubmit = async () => {
     const response = await hauptbuch.createBooking(thisbk.value)
     // show a result popup on response
     if (response.ok) {
-    // Falls der Go-Server doch Text schickt, nutzen wir .text()
-    const msg = await response.text() 
-    popupStatus.value = {
-      show: true,
-      text: `Erfolgreich gespeichert: ${msg}`
+      // Falls der Go-Server doch Text schickt, nutzen wir .text()
+      const msg = await response.text()
+      popupStatus.value = {
+        show: true,
+        text: `Erfolgreich gespeichert: ${msg}`
       }
     } else {
-    popupStatus.value = {
-      show: true,
-      text: `Fehler: ${response.status} ${response.statusText}`
+      popupStatus.value = {
+        show: true,
+        text: `Fehler: ${response.status} ${response.statusText}`
       }
     }
 
     await hauptbuch.loadHauptbuch()
-    
+
     lastbk.value = hauptbuch.bookings[hauptbuch.bookings.length - 1]
-    const kmSinceLastFuelFill = vollgetankt.value 
-      ? 0 
+    const kmSinceLastFuelFill = vollgetankt.value
+      ? 0
       : lastbk.value.kmSinceLastFuelFill - +liters.value / (100 * consumption.averageConsumption.value)
-    
+
     resetForm(
       hauptbuch.bookings.length + 1,
       lastbk.value.km,

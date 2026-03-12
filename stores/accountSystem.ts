@@ -3,7 +3,7 @@ import { useStakeholderStore } from './stakeholder';
 import { useAccountsStore } from './accounts'
 import { useHauptbuchStore } from './hauptbuch';
 import logd from '../utils/logDebug'
-import { Account, Booking, type Unit } from '@/types';
+import { Account, Booking, type Unit, type AccountType } from '@/types';
 import { usePeriodenStore } from './perioden';
 
 
@@ -54,9 +54,9 @@ export const useAccountSystemStore = defineStore('accountSystem', {
 
 export class AccountSystemClass {
   accounts: Account[] = []
-  Errors: Account = new Account(3000000, "Errors", "System", "Errors")
-  Errors1: Account = new Account(3000001, "Errors1", "System", "Errors")
-  Saldenausgleich: Account = new Account(3000002, "Saldenausgleich", "System", "€") 
+  Errors: Account = new Account(3000000, "Errors", "System", "Errors", "System")
+  Errors1: Account = new Account(3000001, "Errors1", "System", "Errors", "System")
+  Saldenausgleich: Account = new Account(3000002, "Saldenausgleich", "System", "€", "System")
   public readonly shStore: ReturnType<typeof useStakeholderStore> | null = null
   public readonly aStore: ReturnType<typeof useAccountsStore> | null
   public readonly hbStore: ReturnType<typeof useHauptbuchStore> | null = null
@@ -90,22 +90,24 @@ export class AccountSystemClass {
       for (const [acc_nr, acc] of aS.sortedAccounts.entries()) {
         const _accntName = acc.Name + " :: " + acc.Bezeichnung
 
+        logd("accountSystem.constructor: processing account ", _accntName, acc)
+
         // else if Bezeichnug has "für alle Stakeholder:" in the description, then create only one account for all stakeholders with account number 2000000 + account number, e.g. for account number 2: 2000002
         if (acc.Bezeichnung && acc.Bezeichnung.indexOf("je Stakeholder:") > -1) {
           for (const [sh_nr, sh] of (shS?.getStakeholder || []).entries()) {
             const _accountId = generateStructuredAccountId(4000 + acc_nr, sh_nr + 1)
-            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit || 'EUR'))
+            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit || 'EUR', acc.Art as AccountType || 'System'))
           }
         } else if (acc.Bezeichnung && acc.Bezeichnung.indexOf("je Gesellschafter:") > -1) {
           // for all other accounts, create an account per stakeholder
           // with acccount number 1000000 + stakeholder number * 100 + account number, e.g. for stakeholder 1 and account 2: 1000200
           for (const [sh_nr, sh] of (shS?.getGesellschafter || []).entries()) {
             const _accountId = generateStructuredAccountId(acc.Kontonummer, sh_nr + 1)
-            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit))
+            this.accounts.push(new Account(_accountId, _accntName, sh, acc.Einheit as Unit, acc.Art as AccountType || 'System'))
           }
         } else {
           const _accountId = +acc.Kontonummer || generateStructuredAccountId(2000, acc_nr + 1)
-          this.accounts.push(new Account(_accountId, _accntName, shS?.getGesellschaft || "Gesellschaft", acc.Einheit as Unit))
+          this.accounts.push(new Account(_accountId, _accntName, shS?.getGesellschaft || "Gesellschaft", acc.Einheit as Unit, acc.Art as AccountType || 'System'))
         }
       }
       // logd("accountSystem.constructor: accounts generated: ", this.accounts)
@@ -120,7 +122,12 @@ export class AccountSystemClass {
     }
     return acc
   }
-
+  // getBalanceSheetAccounts
+  // Assets, Liabilities und Equity or in german: Aktiva, Passiva und Eigenkapital accounts 
+  // have the account type "Bilanz". This function returns all accounts with this account type.
+  getBalanceSheetAccounts = (): Account[] => {
+    return this.accounts.filter(a => ["Assets", "Liabilities", "Equity", "Aktiva", "Passiva", "Eigenkapital"].includes(a.accountType))
+  }
   // getAccounnt by number
   getAccountById = (id: number): Account => {
     const acc = this.accounts.find(a => a.id === id)
@@ -155,5 +162,12 @@ export class AccountSystemClass {
       r = account.bookings.filter((e: any) => e.date.substring(0, 4) === period)
     }
     return +r.reduce((acc: number, cv: any) => acc += cv.haben - cv.soll, 0).toFixed(2)
+  }
+  // getGesellschafterKonten: return all accounts that have a Gesellschafter as owner
+  // and that are Bilanz accounts, i.e. not "System" accounts and not accounts of the "Gesellschaft"  
+
+  getBalanceSheetAccountsOfStakeholders(): Account[] {
+    const stakeholder = this.shStore?.getGesellschafter || []
+    return this.getBalanceSheetAccounts().filter(a => stakeholder.includes(a.owner) && a.owner)
   }
 }
