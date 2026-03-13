@@ -5,6 +5,16 @@ div
   div(v-if="ERRORS.bookings.length > 0") 
     a.errors(href='#' @click="selectToRender(ERRORS)")  Errors:  {{ ERRORS.bookings.length  }}
 
+  div
+    b Saldenausgleich {{ perioden.currentPeriod }}
+    table
+      tbody
+        tr(v-for="s in saldenausgleichSummary" :key="s.owner")
+          td.inner {{ s.owner }}
+          td.inner.right-align(:class="s.mustPay ? 'muss-zahlen' : 'bekommt'")
+            span(v-if="s.mustPay") muss einzahlen: {{ s.amount.toFixed(2) }} €
+            span(v-else) bekommt zurück: {{ s.amount.toFixed(2) }} €
+  br
   div(v-if="toRender.bookings.length != 0") 
     .center
       button.green(@click="resetToRender()" ) hit ⌘+&ltEnter&gt  to go back
@@ -62,17 +72,22 @@ div
 
   br            
   br
-  div Saldenausgleichsbuchungen (Buchungen mit Konto "Saldenausgleich"):
-  table
-    tbody
-      tr(v-for="b in asStore.accountSystem?.Saldenausgleich.bookings || []")
-        td.inner(v-html="b.description")
+  div
+    b Saldenausgleich {{ perioden.currentPeriod }}
+    table.bilanz-table
+      tbody
+        tr(v-for="s in saldenausgleichSummary" :key="s.owner")
+          td.inner {{ s.owner }}
+          td.inner.right-align(:class="s.mustPay ? 'muss-zahlen' : 'bekommt'")
+            span(v-if="s.mustPay") muss einzahlen: {{ s.amount.toFixed(2) }} €
+            span(v-else) bekommt zurück: {{ s.amount.toFixed(2) }} €
 </template>
 
 <script setup lang="ts">
 import { reactive, onMounted, computed } from 'vue'
 import { Account, HauptbuchBooking } from '@/types'
 import { AccountSystemClass, useAccountSystemStore } from '../stores/accountSystem'
+import { usePeriodenStore } from '../stores/perioden'
 import { Booking } from '@/types'
 import { book } from '../composables/book'
 import logd from '../utils/logDebug';
@@ -145,13 +160,14 @@ onMounted(() => { window.addEventListener('keydown', (e) => { if (e.key === 'Ent
 
 // define the stores
 const asStore = useAccountSystemStore()
+const periodenStore = usePeriodenStore()
 
 // load the store data
 if (!asStore.accountSystem) {
   await asStore.initAS()
 }
 const shStore = asStore.accountSystem?.shStore
-const pStore = asStore.accountSystem?.periodenStore
+const pStore = periodenStore
 const stakeholder = computed(() => shStore?.stakeholder || [])
 const gesellschaft = computed(() => shStore?.getGesellschaft || "Gesellschaft")
 const gesellschafter = computed(() => shStore?.getGesellschafter)
@@ -160,38 +176,29 @@ const accounts = computed(() => asStore.accountSystem?.accounts.sort((a, b) => a
 const stakeholderNames = shStore?.verteilungPersonen
 const allBookingsOfPeriod = computed(() => {
   const r = asStore.accountSystem?.hbStore?.bookings || []
-  return filterBookingsByPeriod.value(r, asStore.accountSystem?.periodenStore?.currentPeriod || "")
+  return filterBookingsByPeriod.value(r, periodenStore.currentPeriod)
 })
 
-const sourceBS = toRaw(asStore.accountSystem)
-
-const perioden = computed(() => sourceBS?.periodenStore || [])
-const currentPeriod = computed(() => sourceBS?.periodenStore?.currentPeriod)
-const companyName = computed(() => sourceBS?.shStore?.getGesellschaft || "Gesellschaft")
+const perioden = computed(() => periodenStore)
+const currentPeriod = computed(() => periodenStore.currentPeriod)
+const companyName = computed(() => shStore?.getGesellschaft || "Gesellschaft")
 
 const ERRORS = asStore.accountSystem?.Errors
 
 
-// In deinem AccountSystem / Store
 watch(
-  () => asStore.accountSystem?.periodenStore?.currentPeriod, // Sicherer Pfad
-  async (newPeriod) => {
+  () => periodenStore.currentPeriod,
+  (newPeriod) => {
     if (!newPeriod || !asStore.accountSystem) return;
 
     const bs = asStore.accountSystem;
 
-    // 1. ZENTRALE BEREINIGUNG (Wichtig!)
-    // Wir löschen die AB-Buchungen an der Quelle
+    // Remove AB- closing bookings from the source so they are not re-processed
     if (bs.hbStore) {
       bs.hbStore.bookings = bs.hbStore.bookings.filter(b => !b.nr.startsWith("AB-"));
     }
 
-    // 2. Konten leeren
-    bs.accounts.forEach(konto => {
-      konto.bookings = [];
-    });
-
-    // 3. Neu berechnen
+    // bookEverythingtoBS clears all account.bookings internally before rebooking
     bookEverythingtoBS(bs);
     balanceSalden(bs);
 
@@ -215,8 +222,38 @@ const allLiter = () => Math.round(allBookingsOfPeriod.value.reduce((acc, b) => a
 const tonnenCO2 = () => Math.round(100 * allLiter() * 2.37 / 1000) / 100
 const verbrauchOverall = () => Math.round(allLiter() / allKm() * 10000) / 100
 
+const saldenausgleichSummary = computed(() => {
+  if (!asStore.accountSystem) return []
+  return asStore.accountSystem.getBalanceSheetAccountsOfStakeholders()
+    .filter(a => a.name.includes("Verrechnungskonto"))
+    .flatMap(a => {
+      const umlageBuchungen = a.bookings.filter(b =>
+        b.nr.startsWith("AB-") && b.description.includes("Bilanz-Abschluss: Verrechnungskonto")
+      )
+      if (umlageBuchungen.length === 0) return []
+      const totalSoll = umlageBuchungen.reduce((sum, b) => sum + b.soll, 0)
+      const totalHaben = umlageBuchungen.reduce((sum, b) => sum + b.haben, 0)
+      const mustPay = totalHaben > totalSoll
+      return [{ owner: a.owner, amount: Math.abs(totalSoll - totalHaben), mustPay }]
+    })
+})
 
 
+
+
+// Returns the last calendar date of a period string, e.g. "2024" → "2024-12-31", "2024-Q2" → "2024-06-30"
+function lastDateOfPeriod(period: string): string {
+  const quarterEnds: Record<string, string> = {
+    'Q1': '03-31', 'Q2': '06-30', 'Q3': '09-30', 'Q4': '12-31'
+  }
+  // "alles bis X" or "X bis Y" → use the end part
+  const base = period.indexOf('bis') >= 0 ? period.split('bis').pop()!.trim() : period.trim()
+  const quarterMatch = base.match(/^(\d{4})-(Q[1-4])$/)
+  if (quarterMatch) return `${quarterMatch[1]}-${quarterEnds[quarterMatch[2]]}`
+  const yearMatch = base.match(/^(\d{4})$/)
+  if (yearMatch) return `${yearMatch[1]}-12-31`
+  return new Date().toISOString().slice(0, 10)
+}
 
 // Balance the Salo of all stakeholders (ot Bussi) to equal anc compensate the Bussi Saldo
 function balanceSalden(bs: AccountSystemClass) {
@@ -226,9 +263,12 @@ function balanceSalden(bs: AccountSystemClass) {
     logd("Error: Saldenausgleich account not found in account system")
     return
   }
-  const erfolgskonten = bs.accounts.filter(a => a.id >= 4000 && a.id < 9000)
+  const currentPeriodGlobal = bs.periodenStore?.currentPeriod || ""
+  const closingDate = lastDateOfPeriod(currentPeriodGlobal)
+
+  const erfolgskonten = bs.accounts.filter(a => a.id >= 4000 && a.id < 9000 && a.unit === '€')
   erfolgskonten.forEach((konto) => {
-    const currentPeriod = bs.periodenStore?.currentPeriod || "";
+    const currentPeriod = currentPeriodGlobal
     const saldo = konto.saldoPeriod(currentPeriod); // Saldo ist Haben - Soll
     logd(`Abschluss ${konto.name}: Saldo = ${saldo} Math.abs(saldo) = ${Math.abs(saldo)} ${konto.unit || ""}`)
 
@@ -237,7 +277,7 @@ function balanceSalden(bs: AccountSystemClass) {
 
       const bookingTemplate: Booking = {
         nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
-        date: new Date().toISOString().slice(0, 10),
+        date: closingDate,
         description: `Abschluss ${konto.name} ${currentPeriod}, saldo: ${saldo} ${konto.unit || ""}`,
         amount: absAmount,
         quantity: 0,
@@ -276,7 +316,7 @@ function balanceSalden(bs: AccountSystemClass) {
     gesellschafterkonten.forEach((konto) => {
       const bookingTemplate: Booking = {
         nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
-        date: new Date().toISOString().slice(0, 10),
+        date: closingDate,
         description: `Umlage Bussi-Kosten ${bs.periodenStore?.currentPeriod || ""}`,
         amount: absAnteil,
         quantity: 0,
@@ -307,7 +347,7 @@ function balanceSalden(bs: AccountSystemClass) {
 
       const bookingTemplate: Booking = {
         nr: "AB-" + ((bs.hbStore?.bookings.length ?? 0) + 1).toString(),
-        date: new Date().toISOString().slice(0, 10),
+        date: closingDate,
         description: `Bilanz-Abschluss: ${konto.name}`,
         amount: absAmount,
         quantity: 0,
@@ -453,6 +493,16 @@ th {
 
 .right-align {
   text-align: right;
+  font-weight: bold;
+}
+
+.muss-zahlen {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+.bekommt {
+  color: #0c7f3c;
   font-weight: bold;
 }
 </style>
