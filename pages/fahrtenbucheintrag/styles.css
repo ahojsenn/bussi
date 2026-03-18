@@ -34,10 +34,28 @@ button:hover, button:active {
 }
 
 .vorgang {
-  width: 32%;
+  width: 24%;
   height: 2.0em;
   font-size: 1.3em;
   color: rgba(50, 50, 50, 0.7);
+}
+
+.booking-type-selector {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.booking-type-selector .vorgang {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+@media (max-width: 430px) {
+  .booking-type-selector .vorgang {
+    font-size: 1rem;
+  }
 }
 
 .hilight {
