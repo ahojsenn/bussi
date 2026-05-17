@@ -39,10 +39,8 @@ export function useBookingForm(
 ) {
   const bookingtype = ref<BookingType>(initialBookingType)
   const thisbk = ref(initialBooking)
-  const vollgetankt = ref(false)
+  const vollgetankt = ref(true)
   const nachtrag = ref(false)
-  const liters = ref<number | string>('')
-  const amount = ref<number | string>('')
   const recipient = ref('')
   const lastSubmitted = ref("nothing yet")
 
@@ -72,10 +70,8 @@ export function useBookingForm(
     today: string
   ) => {
     thisbk.value = createNewBooking(bookingNr, lastKm, kmSinceLastFuelFill, today)
-    vollgetankt.value = false
+    vollgetankt.value = true
     nachtrag.value = false
-    liters.value = ''
-    amount.value = ''
     recipient.value = ''
   }
 
@@ -84,8 +80,6 @@ export function useBookingForm(
     thisbk,
     vollgetankt,
     nachtrag,
-    liters,
-    amount,
     recipient,
     lastSubmitted,
     buildDescription,

@@ -1,8 +1,8 @@
 import type { HauptbuchBooking } from '~/types/bussitypes'
 
 // Konstanten für Validierung
-export const FUEL_PRICE_LIMITS = { min: 1.2, max: 2.5 }
-export const CONSUMPTION_TOLERANCE = { low: 0.8, high: 1.2 }
+export const FUEL_PRICE_LIMITS = { min: 1.2, max: 3.0 }
+export const CONSUMPTION_TOLERANCE = { low: 0.8, high: 1.5 }
 
 export interface ValidationResult {
   ok: boolean

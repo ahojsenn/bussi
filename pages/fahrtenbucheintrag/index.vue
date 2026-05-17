@@ -38,8 +38,8 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 
   FuelInput(
     v-if="bookingtype!='Fahrt'"
-    v-model:amount="amount"
-    v-model:liters="liters"
+    v-model:amount="amountInput"
+    v-model:liters="litersInput"
     v-model:nachtrag="nachtrag"
     v-model:vollgetankt="vollgetankt"
     v-model:description="thisbk.description"
@@ -56,10 +56,11 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div kmSinceLastFuleFill: {{roundToDecimals(thisbk.kmSinceLastFuelFill,1)}}
     div computed kmSinceLastFuelFill: {{kmSinceLastFuelFill}}
     div computed estimatedKmLeftInTank: {{roundToDecimals(consumption.estimatedKmLeftInTank(thisbk.kmSinceLastFuelFill),1)}}
-    div consumption.ave[l/100km]: {{consumption.averageConsumption}}
+    div consumption.ave[l/100km]: {{consumption.averageConsumption()}}
     div aktueller Verbrauch: 
       span liters={{thisbk.liters}} , 
-      span {{consumption.calculateConsumption(thisbk.liters, thisbk.kmSinceLastFuelFill)}} l/100km
+      span kmSinceLastFuelFill={{thisbk.kmSinceLastFuelFill}},
+      span verbrauch: {{consumption.calculateConsumption(thisbk.liters, thisbk.kmSinceLastFuelFill)}} l/100km
     div km seit letztem mal vollgetankt: {{Math.round(thisbk.kmSinceLastFuelFill)}} km
     div km lezte Tankung: {{consumption.kmAtLastFuelfill()}}
     div Tankvolumen: {{consumption.totalFuelCapacity}} Liter
@@ -67,7 +68,6 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div Rest im Tank: {{ Math.round(consumption.estimatedFuelInTank(thisbk.kmSinceLastFuelFill))}}  Liter
     div Kommentar: {{description}}
     div bookingtype: {{bookingtype}}  
-    div form: {{form}}
 
   // Anzeige der Validierungsfehler
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
@@ -137,7 +137,16 @@ const initialBooking = createNewBooking(
 )
 
 const form = useBookingForm(initialBooking)
-const { bookingtype, thisbk, vollgetankt, nachtrag, liters, amount, recipient, lastSubmitted, buildDescription, resetForm } = form
+const { bookingtype, thisbk, vollgetankt, nachtrag, recipient, lastSubmitted, buildDescription, resetForm } = form
+
+const amountInput = computed({
+  get: () => thisbk.value.amount || '',
+  set: (v: number | string) => { thisbk.value.amount = +v }
+})
+const litersInput = computed({
+  get: () => thisbk.value.liters || '',
+  set: (v: number | string) => { thisbk.value.liters = +v }
+})
 
 const km = useKilometerCounter(lastbk.value.km)
 const gesellschafter = computed(() => sh_store.getGesellschafter)
@@ -196,31 +205,36 @@ const syncBookingTypeData = () => {
     thisbk.value.kmSinceLastEntry = 0
   }
 
-  thisbk.value.amount = 0
-  thisbk.value.liters = 0
   thisbk.value.consumption = 0
   thisbk.value.fuelPriceInEuro = 0
   thisbk.value.key = ''
+  thisbk.value.kmSinceLastFuelFill = kmSinceLastFuelFill.value
+
+  if (bookingtype.value === 'Fahrt') {
+    thisbk.value.amount = 0
+    thisbk.value.liters = 0
+    return
+  }
 
   if (bookingtype.value === 'Tanken') {
-    thisbk.value.amount = +amount.value // input value is a string
-    thisbk.value.liters = +liters.value // input value is a string
     thisbk.value.fuelPriceInEuro = thisbk.value.amount / thisbk.value.liters
-    thisbk.value.consumption = consumption.calculateConsumption(thisbk.value.liters, thisbk.value.kmSinceLastFuelFill)
-    const kmDrivenWithLiters = thisbk.value.liters / (consumption.averageConsumption.value / 100)
-    thisbk.value.kmSinceLastFuelFill = vollgetankt.value
+    thisbk.value.consumption = vollgetankt.value 
+      ? consumption.averageConsumption()
+      : consumption.calculateConsumption(thisbk.value.liters, kmSinceLastFuelFill.value)
+/*    thisbk.value.kmSinceLastFuelFill = vollgetankt.value
       ? 0
-      : lastbk.value.kmSinceLastFuelFill + thisbk.value.kmSinceLastEntry - kmDrivenWithLiters
+      : kmSinceLastFuelFill.value
+*/
     return
   }
 
   if (bookingtype.value === 'Sonstiges') {
-    thisbk.value.amount = +amount.value
+    thisbk.value.liters = 0
     return
   }
 
   if (bookingtype.value === 'Ausgleichszahlung') {
-    thisbk.value.amount = +amount.value
+    thisbk.value.liters = 0
     thisbk.value.key = recipient.value ? `an: ${recipient.value}` : ''
   }
 }
@@ -236,7 +250,7 @@ const validationResult = computed(() => {
   }
 
   if (bt === 'Tanken') {
-    return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption.value, vollgetankt.value, nachtrag.value)
+    return validateTanken(bk, km.withinRange(+lastbk.value.km), consumption.averageConsumption(), vollgetankt.value, nachtrag.value)
   }
 
   if (bt === 'Sonstiges') {
@@ -273,10 +287,6 @@ const onSubmit = async () => {
     ? 0
     : thisbk.value.km - lastbk.value.km
 
-  if (bookingtype.value === 'Tanken') {
-    thisbk.value.liters = +((document.querySelector('input[name="liters"]') as HTMLInputElement)?.value || 0)
-  }
-
   syncBookingTypeData()
 
   const od = thisbk.value.description
@@ -310,7 +320,7 @@ const onSubmit = async () => {
     const kmSinceLastFuelFill = bookingtype.value === 'Tanken'
       ? (vollgetankt.value
         ? 0
-        : lastbk.value.kmSinceLastFuelFill - +liters.value / (100 * consumption.averageConsumption.value))
+        : lastbk.value.kmSinceLastFuelFill - thisbk.value.liters / (100 * consumption.averageConsumption()))
       : lastbk.value.kmSinceLastFuelFill
 
     resetForm(
