@@ -73,11 +73,33 @@ export function useBookingValidation() {
     return retString !== '' ? { ok: false, result: retString } : { ok: true, result: 'ok' }
   }
 
+  const validateAusgleichszahlung = (
+    bk: HauptbuchBooking,
+    recipient: string,
+    gesellschafter: string[]
+  ): ValidationResult => {
+    let retString = ''
+
+    retString += !bk.amount || bk.amount <= 0 ? 'Bitte Betrag angeben<br>' : ''
+    retString += bk.account === '' ? 'Bitte zahlenden Gesellschafter auswählen<br>' : ''
+    retString += !gesellschafter.includes(bk.account) ? 'Zahlender muss ein Gesellschafter sein<br>' : ''
+    retString += recipient === '' ? 'Bitte empfangenden Gesellschafter auswählen<br>' : ''
+    retString += recipient !== '' && !gesellschafter.includes(recipient)
+      ? 'Empfänger muss ein Gesellschafter sein<br>'
+      : ''
+    retString += bk.account !== '' && recipient === bk.account
+      ? 'Ausgleichszahlung an sich selbst ist nicht möglich<br>'
+      : ''
+
+    return retString !== '' ? { ok: false, result: retString } : { ok: true, result: 'ok' }
+  }
+
   return {
     isParsableNumber,
     isPositiveNumber,
     validateFahrt,
     validateTanken,
     validateSonstiges,
+    validateAusgleichszahlung,
   }
 }

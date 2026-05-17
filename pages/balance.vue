@@ -70,17 +70,7 @@ div
             td.inner.right-align(v-if="a.unit === '€'") {{ a.saldoPeriod(perioden.currentPeriod) }} €
             td(v-else) &nbsp;
 
-  br            
   br
-  div
-    b Saldenausgleich {{ perioden.currentPeriod }}
-    table.bilanz-table
-      tbody
-        tr(v-for="s in saldenausgleichSummary" :key="s.owner")
-          td.inner {{ s.owner }}
-          td.inner.right-align(:class="s.mustPay ? 'muss-zahlen' : 'bekommt'")
-            span(v-if="s.mustPay") muss einzahlen: {{ s.amount.toFixed(2) }} €
-            span(v-else) bekommt zurück: {{ s.amount.toFixed(2) }} €
 </template>
 
 <script setup lang="ts">

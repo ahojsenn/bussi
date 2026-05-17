@@ -18,7 +18,8 @@ button:active {
   transform: scale(1.13);
 }
 
-button::after, button::before {
+button::after,
+button::before {
   border-radius: 13px;
 }
 
@@ -28,7 +29,8 @@ button::after, button::before {
   color: rgba(200, 0, 0, 0.7);
 }
 
-button:hover, button:active {
+button:hover,
+button:active {
   background-color: #90bee3;
   color: white;
 }
@@ -76,7 +78,9 @@ button:hover, button:active {
 }
 
 
-input, select, button {
+input,
+select,
+button {
   border-radius: 4px;
   margin: 2px;
   font-size: 1.3em;
@@ -108,12 +112,14 @@ input[type="checkbox"] {
   text-align: right;
 }
 
-.km:disabled, span.km:disabled {
+.km:disabled,
+span.km:disabled {
   background-color: rgba(10, 10, 10, 0.9);
 }
 
 /* vertical align the plus and minus in the middle */
-.km, span.km {
+.km,
+span.km {
   text-align: center;
   align-items: center;
   font-family: 'Courier New', Courier, monospace;
@@ -123,8 +129,8 @@ input[type="checkbox"] {
   height: 1.2em;
   border-radius: 8px;
   background-color: rgba(0, 0, 0, 0.7);
-  background: linear-gradient(to top, hsla(20, 0%, 0%, 0.9), 
-        hsla(0, 0%, 50%, 0.5) 50%, hsla(20, 0%, 0%, 0.9));
+  background: linear-gradient(to top, hsla(20, 0%, 0%, 0.9),
+      hsla(0, 0%, 50%, 0.5) 50%, hsla(20, 0%, 0%, 0.9));
 }
 
 .changebar {
@@ -151,7 +157,7 @@ input[type="checkbox"] {
 }
 
 /* Beschreibung Eingabefeld mit drei zeilen und zeilenumbrüchen */
-.description{
+.description {
   height: 3.6em;
   font-size: 1.3em;
   width: 97%;
@@ -159,10 +165,13 @@ input[type="checkbox"] {
   padding: 5px;
   margin: 4px;
   border: 1px solid grey;
-  resize: vertical; /* allow vertical resizing */
+  resize: vertical;
+  /* allow vertical resizing */
 }
 
-input.km, select.km, button.km {
+input.km,
+select.km,
+button.km {
   color: white;
 }
 
@@ -208,32 +217,32 @@ input.km, select.km, button.km {
 
 @font-face {
   font-family: 'Digital-7';
-  src: url('/fotns/digital-7.woff') format('woff'),
-       url('/fonts/digital-7.ttf') format('truetype');
+  src: url('/fonts/digital-7.woff') format('woff'),
+    url('/fonts/digital-7.ttf') format('truetype');
 }
 
 /* Das eigentliche Input-Feld */
 .gas-pump-input {
   /* Hintergrund mit Farbverlauf für den LCD-Effekt */
   background: linear-gradient(to bottom, #e2eb42 0%, #cbd61a 100%);
-  
+
   /* Schrift-Styling */
   color: #1a1a1a;
   font-family: 'Digital-7', sans-serif;
   font-size: 2rem;
   font-weight: bold;
   text-align: right;
-  
+
   /* Form und Rahmen */
   border: 4px solid #333;
   border-radius: 4px;
   padding: 5px 15px;
   width: 55%;
   outline: none;
-  
+
   /* Innerer Schatten für Tiefe */
   box-shadow: inset 0px 4px 10px rgba(0, 0, 0, 0.3);
-  
+
   /* Leucht-Effekt der Segmente simulieren */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }

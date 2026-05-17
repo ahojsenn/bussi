@@ -31,6 +31,17 @@ export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {
     return kmSinceLastFuelFill / averageConsumption.value
   }
 
+  const estimatedFuelInTank = (kmSinceLastFuelFill: number): number => {
+    return totalFuelCapacity - estimatedFuelCapacity(kmSinceLastFuelFill)
+  }
+
+  const estimatedKmLeftInTank = (kmSinceLastFuelFill: number): number => {
+    return 100 * estimatedFuelInTank(kmSinceLastFuelFill) / averageConsumption.value
+  }
+
+
+  const totalFuelCapacity = 80
+
   return {
     allLiters,
     allKM,
@@ -38,5 +49,8 @@ export function useFuelConsumption(bookings: Ref<HauptbuchBooking[]>) {
     kmAtLastFuelfill,
     calculateConsumption,
     estimatedFuelCapacity,
+    estimatedFuelInTank,
+    estimatedKmLeftInTank,
+    totalFuelCapacity
   }
 }

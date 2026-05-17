@@ -31,7 +31,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     v-if="bookingtype!=='Ausgleichszahlung'"
     :digits="km.digits"
     :kmDriven="km.kmDriven(+lastbk.km)"
-    :showWarning="km.toFar(+lastbk.km)"
+    :showWarning="km.toFar(+lastbk.km) || consumption.estimatedKmLeftInTank(thisbk.kmSinceLastFuelFill) < -50"
     @increment="(i) => { km.inc(i); kmChange(i) }"
     @decrement="(i) => { km.dec(i); kmChange(i) }"
   )
@@ -52,15 +52,23 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
  
   // debug info
   div(v-if="DEBUG")
-    div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{thisbk.fuelPriceInEuro}}
-    div aktueller Verbrauch: {{consumption.calculateConsumption(+liters, thisbk.kmSinceLastFuelFill)}} l/100km
-    div Durchschnittsverbrauch {{ consumption.averageConsumption }} l/100km
-    div km seit letztem mal vollgetankt: {{thisbk.kmSinceLastFuelFill}}
-    div km gefahren seit letzter Tankfüllung: {{thisbk.kmSinceLastFuelFill}}km
+    div € pro Liter: {{thisbk.amount}} / {{thisbk.liters}} = {{roundToDecimals(thisbk.fuelPriceInEuro,2)}}
+    div kmSinceLastFuleFill: {{roundToDecimals(thisbk.kmSinceLastFuelFill,1)}}
+    div computed kmSinceLastFuelFill: {{kmSinceLastFuelFill}}
+    div computed estimatedKmLeftInTank: {{roundToDecimals(consumption.estimatedKmLeftInTank(thisbk.kmSinceLastFuelFill),1)}}
+    div consumption.ave[l/100km]: {{consumption.averageConsumption}}
+    div aktueller Verbrauch: 
+      span liters={{thisbk.liters}} , 
+      span {{consumption.calculateConsumption(thisbk.liters, thisbk.kmSinceLastFuelFill)}} l/100km
+    div km seit letztem mal vollgetankt: {{Math.round(thisbk.kmSinceLastFuelFill)}} km
     div km lezte Tankung: {{consumption.kmAtLastFuelfill()}}
-    div wieviel passt gerade in den Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} 
-    div Rest im Tank: {{consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill)}} Liter
-  
+    div Tankvolumen: {{consumption.totalFuelCapacity}} Liter
+    div wieviel passt gerade in den Tank: {{Math.round(10*consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill))/10}} Liter
+    div Rest im Tank: {{ Math.round(consumption.estimatedFuelInTank(thisbk.kmSinceLastFuelFill))}}  Liter
+    div Kommentar: {{description}}
+    div bookingtype: {{bookingtype}}  
+    div form: {{form}}
+
   // Anzeige der Validierungsfehler
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
   // Submit Button
@@ -78,14 +86,14 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 
 <script setup lang="ts">
 logd("fahrtenbucheintrag.vue setup")
+import roundToDecimals from '~/utils/roundToDecimals'
 import { computed, watch } from 'vue'
 import { useHauptbuchStore } from '../../stores/hauptbuch'
 import { useStakeholderStore } from '../../stores/stakeholder'
 import { useAccountsStore } from '~/stores/accounts'
-import { HauptbuchBooking } from '@/types'
 import logd from '~/utils/logDebug'
 import { useKilometerCounter } from '~/composables/useKilometerCounter'
-import { useBookingForm } from '~/composables/useBookingForm'
+import { useBookingForm, createNewBooking, buildAusgleichDefaultDescription } from '~/composables/useBookingForm'
 import { useBookingValidation } from '~/composables/useBookingValidation'
 import { useFuelConsumption } from '~/composables/useFuelConsumption'
 import BookingTypeSelector from '~/components/fahrtenbucheintrag/BookingTypeSelector.vue'
@@ -121,20 +129,11 @@ const consumption = useFuelConsumption(bookingsRef)
 const validation = useBookingValidation()
 const { isPositiveNumber, validateFahrt, validateTanken, validateSonstiges, validateAusgleichszahlung } = validation
 
-const initialBooking = new HauptbuchBooking(
-  (hauptbuch.bookings.length + 1).toString(),
-  now,
-  '',
+const initialBooking = createNewBooking(
+  hauptbuch.bookings.length + 1,
   lastbk.value.km,
-  0,
-  lastbk.value.km - consumption.kmAtLastFuelfill(),
-  0,
-  0,
-  0,
-  0,
-  '',
-  '',
-  hauptbuch.bookings.length + 1
+  lastbk.value.kmSinceLastFuelFill,
+  now
 )
 
 const form = useBookingForm(initialBooking)
@@ -152,21 +151,6 @@ const recipientOptions = computed(() => (
 ))
 const lastAutoAusgleichDescription = ref('')
 
-const buildAusgleichDefaultDescription = (account: string, recipientName: string) => {
-  if (account && recipientName) {
-    return `Ausgleich von ${account} an ${recipientName}`
-  }
-
-  if (account) {
-    return `Ausgleich von ${account}`
-  }
-
-  if (recipientName) {
-    return `Ausgleich an ${recipientName}`
-  }
-
-  return 'Ausgleichszahlung'
-}
 
 const kmChange = (i: number) => {
   thisbk.value.kmSinceLastEntry = km.kmDriven(+lastbk.value.km)
@@ -202,11 +186,14 @@ watch([bookingtype, () => thisbk.value.account, recipient], ([currentBookingType
   lastAutoAusgleichDescription.value = nextAutoDescription
 })
 
+// I need this for calculation validations, sinde thisbk.kmSinceLastFuelFill might be set to zero on filled fuuel
+const kmSinceLastFuelFill = computed(() => lastbk.value.kmSinceLastFuelFill + thisbk.value.km - lastbk.value.km)
+
+
 const syncBookingTypeData = () => {
   if (bookingtype.value === 'Ausgleichszahlung') {
     thisbk.value.km = lastbk.value.km
     thisbk.value.kmSinceLastEntry = 0
-    thisbk.value.kmSinceLastFuelFill = lastbk.value.kmSinceLastFuelFill
   }
 
   thisbk.value.amount = 0
@@ -216,8 +203,8 @@ const syncBookingTypeData = () => {
   thisbk.value.key = ''
 
   if (bookingtype.value === 'Tanken') {
-    thisbk.value.amount = +amount.value
-    thisbk.value.liters = +liters.value
+    thisbk.value.amount = +amount.value // input value is a string
+    thisbk.value.liters = +liters.value // input value is a string
     thisbk.value.fuelPriceInEuro = thisbk.value.amount / thisbk.value.liters
     thisbk.value.consumption = consumption.calculateConsumption(thisbk.value.liters, thisbk.value.kmSinceLastFuelFill)
     const kmDrivenWithLiters = thisbk.value.liters / (consumption.averageConsumption.value / 100)
@@ -263,6 +250,20 @@ const validationResult = computed(() => {
   return { ok: false, result: 'Unbekannter Buchungstyp' }
 })
 
+const od = thisbk.value.description
+const description = computed(() => buildDescription(
+  bookingtype.value,
+  {
+    kmSinceLastEntry: thisbk.value.kmSinceLastEntry,
+    originalDescription: od,
+    isVollgetankt: vollgetankt.value,
+    isNachtrag: nachtrag.value,
+    recipient: bookingtype.value === 'Ausgleichszahlung' ? recipient.value : undefined
+  }
+))
+
+
+/* ========== on submit ========== */
 const onSubmit = async () => {
   logd("fahrtenbucheintrag.vue onSubmit: ")
   lastSubmitted.value = ""
@@ -279,16 +280,7 @@ const onSubmit = async () => {
   syncBookingTypeData()
 
   const od = thisbk.value.description
-  thisbk.value.description = buildDescription(
-    bookingtype.value,
-    {
-      kmSinceLastEntry: thisbk.value.kmSinceLastEntry,
-      originalDescription: od,
-      isVollgetankt: vollgetankt.value,
-      isNachtrag: nachtrag.value,
-      recipient: bookingtype.value === 'Ausgleichszahlung' ? recipient.value : undefined
-    }
-  )
+  thisbk.value.description = description.value
 
   console.log('onSubmit', thisbk.value)
 

@@ -7,17 +7,17 @@ div.pump
       step="0.01"
       pattern="[0-9]+([.][0-9]+)?"
       inputmode="decimal"
-      value="€"
-      placeholder="Euro" 
+      placeholder="0.00" 
       v-model="amount" 
       spellcheck="false"
-      onfocus="this.select()"
+      @focus="$event.target.select()"
     )
     br
     span.pump-label Price to pay €
     br
-    span.pump-label nachtrag?
-    input(type="checkbox" name="nachtrag?" placeholder="" v-model="nachtrag" style="color: red")
+    template(v-if="showNachtrag")
+      span.pump-label nachtrag?
+      input(type="checkbox" name="nachtrag?" placeholder="" v-model="nachtrag" style="color: red")
   
   div.pump-display-container(v-if="showLiterInput")
     input(
@@ -26,11 +26,10 @@ div.pump
       step="0.01"
       pattern="[0-9]+([.][0-9]+)?"
       inputmode="decimal"
-      value="0.00"
-      placeholder="Litres" 
+      placeholder="0.00" 
       v-model="liters" 
       spellcheck="false"
-      onfocus="this.select()"
+      @focus="$event.target.select()"
     )
     br
     span.pump-label Litres
@@ -40,18 +39,18 @@ div.pump
 
   span.pump-display-container(v-if="showDescription")
     textarea.description( 
-      :class="{'red': description==''}" 
+      :class="{'red': (descriptionRequired ?? false) && description==''}" 
       type="text" 
       name="description" 
       placeholder="description, what did you purchase?" 
       v-model="description" 
-      required
+      :required="descriptionRequired ?? false"
     )
 </template>
 
 <script setup lang="ts">
-const amount = defineModel<string>('amount', { required: true })
-const liters = defineModel<string>('liters', { required: true })
+const amount = defineModel<number | string>('amount', { required: true })
+const liters = defineModel<number | string>('liters', { required: true })
 const vollgetankt = defineModel<boolean>('vollgetankt')
 const description = defineModel<string>('description', { required: true })
 const nachtrag = defineModel<boolean>('nachtrag')
@@ -59,6 +58,8 @@ const nachtrag = defineModel<boolean>('nachtrag')
 defineProps<{
   showLiterInput: boolean
   showDescription: boolean
+  showNachtrag?: boolean
+  descriptionRequired?: boolean
   isValid: (value: any) => boolean
 }>()
 </script>

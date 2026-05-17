@@ -4,11 +4,13 @@
 
 
 # doing
-- Zahlungsvorschläge zum Salednausgleich...
+- Vollgetankt Nachtrag reduziert die km falsch. Ex müssten nicht einfach auf Null gesetzt werden, wondern der Durschnittsverbrauch mal getankte Liter subtrahiert werden, oder so.
+- Fahrt : nicht v ollgetankt dxarf gar nicht eintragbar sein.
 
   
 
 # done
+- Zahlungsvorschläge zum Salednausgleich...
 - Tanke nachträglich eintragen ermöglichen...
 - check again if splits.length = nSplits is correctly done in every booking
 - "nicht vollgetankt" als default...
