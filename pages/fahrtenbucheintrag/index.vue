@@ -125,7 +125,6 @@ await hauptbuch.loadHauptbuch()
 const bookingsRef = computed(() => hauptbuch.bookings)
 const accounts = useAccountsStore()
 await accounts.loadDataFromGoogle()
-const warning = ref(false)
 
 const DEBUG = ref(false)
 const hostname = () => {

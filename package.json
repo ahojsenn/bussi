@@ -5,9 +5,7 @@
     "dev": "nvm use 25 ; nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "check-deploy": "curl -s https://api.github.com/repos/docjoe/bussi/actions/workflows/gh-pages.yml/runs | jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}'",
-    "postinstall": "nuxt prepare",
-    "deploy": "nuxt generate && touch .output/.nojekyll && touch .output/public/.nojekyll && gh-pages --dotfiles -d .output/public"
+    "postinstall": "nuxt prepare"
   },
   "devDependencies": {
     "@nuxt/image": "^0.7.1",
@@ -28,7 +26,6 @@
     "@types/papaparse": "^5.3.7",
     "@vueuse/core": "^14.2.1",
     "babel-core": "^6.26.3",
-    "gh-pages": "^5.0.0",
     "import": "^0.0.6",
     "jest": "^29.4.3",
     "jest-environment-jsdom": "^29.4.3",
