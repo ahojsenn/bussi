@@ -83,4 +83,15 @@ td{
 th {
   text-align: left;
 }
+
+/* Auf dem Telefon frisst das Padding sonst ein Zehntel der Bildschirmbreite. */
+@media (max-width: 700px) {
+  .foreground {
+    padding: 10px;
+    border-radius: 16px;
+  }
+  .background {
+    border-radius: 16px;
+  }
+}
 </style>

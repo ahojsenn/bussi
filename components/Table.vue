@@ -38,48 +38,52 @@ div
         )
       
 
-    table
-      thead
-        th(v-for="col,i in tableColumns" )
-          div(@click.exact="sortArray(col)" class="sortable-header")
-            span(v-html="formatCamelCase(col)") 
-            span(v-if="sortKey == col && sortOrder > 0") ↓
-            span(v-if="sortKey == col && sortOrder < 0") ↑
-            span(v-if="['kmSinceLastEntry', 'soll', 'haben'].includes(col)") &nbsp; {{ sumRow(col) }}  
-            span(v-else) &nbsp;
-            // Arrows for sort indication
-            span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑
-            span.arrow(v-else) ↓↓
-          button(
-            @click="toggleAggregation(col)"
-            :class="aggregateKey === col ? 'active' : ''"
-            ) <==>
-             
-    
-      tbody
-        tr(v-for="row in displayRows" v-bind:class="{ \
-              jahresendbuchung: isJahresendbuchung(row) \
-              }")
-          td(
-            v-for="(col, colnr) in tableColumns",
-            v-on:click.left="handleSetFilter(col, row[col], false)",
-            v-on:click.right="handleSetFilter(col, row[col], true)",
-            v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",  
-            v-on:mouseleave="setCurrentCol(-1)",   
-            
-          )
-            div(v-bind:class="{nowrap: 'date amount'.indexOf(col) > -1}")
-              span(style="text-align: right" v-html="row[col]?.toLocaleString('de-DE') || ''") 
-    
-    
-      tfoot
-        tr
-          th(
-            v-for="col in tableColumns",
-            v-if="col != 'Account_Link'",
-            style="text-align: right")
-            span(v-if="showSum && 'Netto Saldo Psoll Phaben'.indexOf(col) > -1") {{ sumEuro(col) }}
-            span(v-else) &nbsp;
+    div.table-wrap
+      table
+        thead
+          th(v-for="col,i in tableColumns" )
+            div(@click.exact="sortArray(col)" class="sortable-header")
+              span(v-html="formatCamelCase(col)")
+              span(v-if="sortKey == col && sortOrder > 0") ↓
+              span(v-if="sortKey == col && sortOrder < 0") ↑
+              span(v-if="['kmSinceLastEntry', 'soll', 'haben'].includes(col)") &nbsp; {{ sumRow(col) }}
+              span(v-else) &nbsp;
+              // Arrows for sort indication
+              span.arrow(v-if="(sortKey == col) && (sortOrder > 0)") ↑↑
+              span.arrow(v-else) ↓↓
+            button(
+              @click="toggleAggregation(col)"
+              :class="aggregateKey === col ? 'active' : ''"
+              ) <==>
+
+        tbody
+          tr(v-for="(row, rowIdx) in displayRows" v-bind:class="{ \
+                jahresendbuchung: isJahresendbuchung(row), \
+                expanded: expandedRows.has(rowIdx) \
+                }")
+            td(
+              v-for="(col, colnr) in tableColumns",
+              :data-label="plainLabel(col)",
+              v-bind:class="cellClass(col, row)",
+              v-on:click.left="handleCellClick(col, row[col], false)",
+              v-on:click.right="handleCellClick(col, row[col], true)",
+              v-on:mouseover="setCurrentRow(row), setCurrentCol(colnr)",
+              v-on:mouseleave="setCurrentCol(-1)",
+            )
+              div(v-bind:class="{nowrap: 'date amount'.indexOf(col) > -1}")
+                span(style="text-align: right" v-html="row[col]?.toLocaleString('de-DE') || ''")
+            //- Nur im Karten-Layout sichtbar, auf dem Desktop per display:none aus der Tabelle genommen
+            td.card-toggle(v-if="secondaryColumns.length > 0")
+              button(@click.stop="toggleRow(rowIdx)") {{ expandedRows.has(rowIdx) ? 'weniger ▴' : 'mehr ▾' }}
+
+        tfoot
+          tr
+            th(
+              v-for="col in tableColumns",
+              v-if="col != 'Account_Link'",
+              style="text-align: right")
+              span(v-if="showSum && 'Netto Saldo Psoll Phaben'.indexOf(col) > -1") {{ sumEuro(col) }}
+              span(v-else) &nbsp;
 </template>
 
 <script setup lang="ts">
@@ -233,11 +237,79 @@ const tableColumns = computed(() => {
 
 const unSetPage =  () =>  pageNr.value = -1
 
+// --- Karten-Layout fuer schmale Screens -------------------------------------
+// Unter 700px wird jede Zeile zu einer Karte (siehe @media im style-Block). Die
+// Klassen hier steuern nur, was in der Karte oben steht, was als Label/Wert-Paar
+// erscheint und was hinter "mehr" verschwindet. Auf dem Desktop haben sie keine
+// Wirkung, die Tabelle bleibt unveraendert.
+
+// Kopfzeile der Karte: eine Datums- und eine Namensspalte, falls vorhanden.
+const HEAD_CANDIDATES = ['date', 'datum', 'account', 'konto', 'name', 'stakeholder']
+// Was in der eingeklappten Karte als Label/Wert-Paar sichtbar bleibt.
+const BODY_CANDIDATES = ['amount', 'betrag', 'saldo', 'netto', 'soll', 'haben', 'km', 'liters', 'consumption']
+
+const matches = (col: string, candidates: string[]) =>
+  candidates.some((c) => col.toLowerCase() === c || col.toLowerCase().startsWith(c))
+
+const headColumns = computed(() =>
+  tableColumns.value.filter((col) => matches(col, HEAD_CANDIDATES)).slice(0, 2))
+
+const bodyColumns = computed(() => {
+  const cols = tableColumns.value.filter(
+    (col) => !headColumns.value.includes(col) && matches(col, BODY_CANDIDATES))
+  // Fallback: erkennt die Heuristik nichts, zeigen wir die ersten drei Spalten,
+  // damit eine Karte nie leer aussieht.
+  if (cols.length === 0 && headColumns.value.length === 0) return tableColumns.value.slice(0, 3)
+  return cols
+})
+
+const primaryColumns = computed(() =>
+  [...headColumns.value, ...bodyColumns.value, ...tableColumns.value.filter((c) => c === 'description')])
+
+const secondaryColumns = computed(() =>
+  tableColumns.value.filter((col) => !primaryColumns.value.includes(col)))
+
+// Eine reine Fahrt hat liters/consumption/amount auf 0. In der Tabelle ist das
+// eine Spalte mit einer Null, in der Karte eine eigene Zeile - also raus damit,
+// solange die Karte eingeklappt ist.
+const isEmptyValue = (v: any) => v === undefined || v === null || v === '' || v === 0
+
+const cellClass = (col: string, row: any) => ({
+  'card-head': headColumns.value.includes(col),
+  'card-text': col === 'description',
+  secondary: secondaryColumns.value.includes(col),
+  'is-empty': isEmptyValue(row?.[col]),
+  nowrap: 'date amount'.indexOf(col) > -1,
+})
+
+// data-label wird im Karten-Layout per ::before als Spaltenname vor den Wert
+// gesetzt. formatCamelCase taugt dafuer nicht, das liefert HTML mit <wbr>.
+const plainLabel = (col: string) => col.replace(/([a-z])([A-Z])/g, '$1 $2')
+
+const expandedRows = ref(new Set<number>())
+const toggleRow = (idx: number) => {
+  const next = new Set(expandedRows.value)
+  next.has(idx) ? next.delete(idx) : next.add(idx)
+  expandedRows.value = next
+}
+
+// Auf Touch-Geraeten ist jeder Tap ein Linksklick. Ohne diese Bremse sammelt man
+// beim Scrollen durchs Hauptbuch ungewollt Filter ein, und der Anti-Filter
+// (Rechtsklick) ist dort ohnehin nicht ausloesbar. Gefiltert wird auf dem
+// Telefon ueber das Textfeld oben.
+const canHover = () =>
+  typeof window === 'undefined' || window.matchMedia?.('(hover: hover)').matches !== false
+
+const handleCellClick = (col: string, value: string, isAnti: boolean) => {
+  if (!canHover()) return
+  handleSetFilter(col, value, isAnti)
+}
 
 watch(
   () => props.selectedBookingsToRender, () => {
     // logd("Table.watch: selectedBookingsToRender changed, resetting pageNr to 1")
     pageNr.value = 1
+    expandedRows.value = new Set()
   }
 )
 
@@ -575,13 +647,185 @@ span.red {
 
 .sortable-header {
   .arrow {
-    opacity: 0; 
+    opacity: 0;
     transition: opacity 0.2s;
     cursor: pointer;
   }
 
   &:hover .arrow {
-    opacity: 1; 
+    opacity: 1;
+  }
+}
+
+/* Die Tabelle scrollt in ihrem eigenen Container, statt die ganze Seite
+   horizontal zu schieben. */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Der mehr/weniger-Knopf gehoert nur zur Karte, in der Tabelle waere er eine
+   ueberzaehlige Spalte. */
+td.card-toggle {
+  display: none;
+}
+
+/* Das Popup haengt an mouseover. Auf Touch gibt es kein Hover, es bliebe nach
+   einem Tap kleben und ist bei max-width 30% ohnehin unlesbar. */
+@media (hover: none) {
+  #popup {
+    display: none !important;
+  }
+}
+
+/* ---- Karten-Layout ------------------------------------------------------ */
+@media (max-width: 700px) {
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+    width: 100%;
+    /* Ohne border-box sprengen Padding und Rahmen der Karte die 100% und
+       schieben den Inhalt aus dem Viewport. */
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  /* Die Spaltennamen wandern per data-label in die Zellen, die Kopfzeile wird
+     damit ueberfluessig. */
+  thead,
+  tfoot {
+    display: none;
+  }
+
+  tr,
+  tr:nth-of-type(odd),
+  tr:nth-of-type(even) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(60, 60, 59, 0.25);
+    border-radius: 10px;
+    margin: 0 0 10px 0;
+    padding: 8px 10px;
+  }
+
+  tr.jahresendbuchung,
+  tr.jahresendbuchung:nth-of-type(odd) {
+    background: rgba(255, 100, 0, 0.3);
+  }
+
+  td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    /* shrink erlauben, sonst kann eine lange description die Karte breiter
+       machen als den Bildschirm und schiebt die Werte raus. */
+    flex: 1 1 100%;
+    min-width: 0;
+    border: none;
+    padding: 2px 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    flex: 0 1 auto;
+    opacity: 0.65;
+    text-align: left;
+  }
+
+  td div {
+    min-width: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  td span {
+    display: inline;
+    max-width: 100%;
+    text-align: right;
+  }
+
+  /* Datum und Konto als Kopfzeile der Karte, ohne Label, nebeneinander. */
+  td.card-head {
+    order: -1;
+    flex: 1 1 45%;
+    min-width: 0;
+    justify-content: flex-start;
+    font-size: 1.15em;
+    font-weight: bold;
+    padding-bottom: 6px;
+  }
+
+  td.card-head ~ td.card-head {
+    justify-content: flex-end;
+  }
+
+  td.card-head::before {
+    content: none;
+  }
+
+  /* description ist Freitext und bekommt die volle Breite unter den Zahlen. */
+  td.card-text {
+    order: 1;
+    justify-content: flex-start;
+    padding-top: 6px;
+  }
+
+  td.card-text::before {
+    content: none;
+  }
+
+  td.card-text div,
+  td.card-text span {
+    text-align: left;
+  }
+
+  td.secondary {
+    display: none;
+    order: 2;
+  }
+
+  /* Leere Werte verschwinden mit den Nebenspalten hinter "mehr", damit eine
+     Fahrt nicht drei Nullen anzeigt. */
+  tr:not(.expanded) td.is-empty {
+    display: none;
+  }
+
+  tr.expanded td.secondary,
+  tr.expanded td.is-empty {
+    display: flex;
+  }
+
+  td.card-toggle {
+    display: flex;
+    order: 3;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+
+  td.card-toggle::before {
+    content: none;
+  }
+
+  /* Die Filter-Buttons oben brauchen auf schmalen Screens Umbruch statt
+     einer einzigen langen Zeile. */
+  .filter-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .filter-box input {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 
