@@ -11,6 +11,15 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
   BookingTypeSelector(v-model="bookingtype")
   br
 
+  // ein paar Warnungen und Hinweise
+  // Das Popup einbinden
+  div.warn(
+    v-if="(consumption.estimatedFuelInTank(thisbk.kmSinceLastFuelFill) < 10)"
+    ) bitte Tanken!
+    div es sind nur noch 
+    div {{roundToDecimals(consumption.estimatedFuelInTank(thisbk.kmSinceLastFuelFill),1)}} 
+    div Liter im Tank!
+
   // Datum und Konto
   span
     input(type="datetime-local" name="date" :value="thisbk.date" required)
@@ -67,7 +76,9 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
     div wieviel passt gerade in den Tank: {{Math.round(10*consumption.estimatedFuelCapacity(thisbk.kmSinceLastFuelFill))/10}} Liter
     div Rest im Tank: {{ Math.round(consumption.estimatedFuelInTank(thisbk.kmSinceLastFuelFill))}}  Liter
     div Kommentar: {{description}}
-    div bookingtype: {{bookingtype}}  
+    div(v-if="validationResult.ok")
+      span this will be send to the server:
+      div(v-html="formatAttributesWithBr(thisbk)")
 
   // Anzeige der Validierungsfehler
   span(v-if="!validationResult.ok" class="error" v-html="validationResult.result") 
@@ -87,6 +98,7 @@ form.disable-dbl-tap-zoom.block(@submit.prevent="onSubmit" )
 <script setup lang="ts">
 logd("fahrtenbucheintrag.vue setup")
 import roundToDecimals from '~/utils/roundToDecimals'
+import { formatAttributesWithBr } from '~/utils/formatAttributesWithBr'
 import { computed, watch } from 'vue'
 import { useHauptbuchStore } from '../../stores/hauptbuch'
 import { useStakeholderStore } from '../../stores/stakeholder'
@@ -113,6 +125,7 @@ await hauptbuch.loadHauptbuch()
 const bookingsRef = computed(() => hauptbuch.bookings)
 const accounts = useAccountsStore()
 await accounts.loadDataFromGoogle()
+const warning = ref(false)
 
 const DEBUG = ref(false)
 const hostname = () => {
@@ -195,8 +208,31 @@ watch([bookingtype, () => thisbk.value.account, recipient], ([currentBookingType
   lastAutoAusgleichDescription.value = nextAutoDescription
 })
 
-// I need this for calculation validations, sinde thisbk.kmSinceLastFuelFill might be set to zero on filled fuuel
-const kmSinceLastFuelFill = computed(() => lastbk.value.kmSinceLastFuelFill + thisbk.value.km - lastbk.value.km)
+// I need this for calculation validations, sinde thisbk.kmSinceLastFuelFill might be set to zero on filled fuel
+// this is complicated, if the last fue fill was either only partial or a Nachtrag
+const kmSinceLastFuelFill = computed(
+  (): number => {
+    const hasTanken = lastbk.value.description.includes("Tanken")
+    const hasVollgetankt = lastbk.value.description.includes("vollgetankt")
+    const hasNachtrag = lastbk.value.description.includes("Nachtrag")
+    const baseKmSinceLastFuelFill = lastbk.value.kmSinceLastFuelFill + thisbk.value.km - lastbk.value.km
+
+    // if the last booking was no fuel fill then simply return the kmSinceLastFuelFill from the last booking 
+    // plus the difference of the last and this bookings km
+    if (!hasTanken) return baseKmSinceLastFuelFill
+
+    // else if hasTanken
+    const kmTanked = 100 * thisbk.value.liters / consumption.averageConsumption()
+    // if it is a Nachtrag, just subtract the km from kmSinceLastFuelFill by using the average consumption and the tanked litres
+    if (hasNachtrag || !hasVollgetankt) {
+      return baseKmSinceLastFuelFill - kmTanked
+    }
+
+    // now if it is Tanken and it is vollgetanke
+    // if lastbk was a full fuel fill and no Nachtrag return all the km since the last booking
+    return thisbk.value.km - lastbk.value.km
+  })
+
 
 
 const syncBookingTypeData = () => {
@@ -209,6 +245,7 @@ const syncBookingTypeData = () => {
   thisbk.value.fuelPriceInEuro = 0
   thisbk.value.key = ''
   thisbk.value.kmSinceLastFuelFill = kmSinceLastFuelFill.value
+  thisbk.value.description = description.value
 
   if (bookingtype.value === 'Fahrt') {
     thisbk.value.amount = 0
@@ -218,13 +255,13 @@ const syncBookingTypeData = () => {
 
   if (bookingtype.value === 'Tanken') {
     thisbk.value.fuelPriceInEuro = thisbk.value.amount / thisbk.value.liters
-    thisbk.value.consumption = vollgetankt.value 
+    thisbk.value.consumption = !vollgetankt.value
       ? consumption.averageConsumption()
       : consumption.calculateConsumption(thisbk.value.liters, kmSinceLastFuelFill.value)
-/*    thisbk.value.kmSinceLastFuelFill = vollgetankt.value
-      ? 0
-      : kmSinceLastFuelFill.value
-*/
+    /*    thisbk.value.kmSinceLastFuelFill = vollgetankt.value
+          ? 0
+          : kmSinceLastFuelFill.value
+    */
     return
   }
 

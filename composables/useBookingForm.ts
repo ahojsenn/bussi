@@ -58,7 +58,7 @@ export function useBookingForm(
     description += options.recipient ? " :: an " + options.recipient : ''
     description += options.kmSinceLastEntry > 0 ? " :: km: " + options.kmSinceLastEntry : ''
     description += options.originalDescription !== "" ? " :: " + options.originalDescription : ""
-    description += bookingType === 'Tanken' && !options.isVollgetankt ? " :: nicht vollgetankt" : ""
+    description += bookingType === 'Tanken' && options.isVollgetankt ? " :: vollgetankt" : ""
     description += bookingType === 'Tanken' && options.isNachtrag ? " :: Nachtrag" : ""
     return description
   }

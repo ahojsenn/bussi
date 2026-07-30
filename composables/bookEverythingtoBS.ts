@@ -27,12 +27,15 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
     // find benzinpreis of next booking with the same km or lower
     // because the benzinpreis is only known after the next booking with km is known  
     const kmMatch = (s: string) => parseInt(s.split("km:")[1])
+    // Nur brauchbare Werte weiterreichen: ein einziges Infinity/NaN im Statistikkonto würde sonst
+    // über den Durchschnitt jede Folgebuchung anstecken
+    const isUsable = (b: Booking) => b.amount > 0 && isFinite(b.amount)
     const foundBooking = a.bookings.find((b: Booking) => kmMatch(b.description) >= km)
-    if (foundBooking && foundBooking.amount > 0) {
+    if (foundBooking && isUsable(foundBooking)) {
       return foundBooking.amount
     } else {
       // caslculate average from the whole booking set up to here
-      const relevantBookings = a.bookings.filter((b: Booking) => kmMatch(b.description) <= km && b.amount > 0)
+      const relevantBookings = a.bookings.filter((b: Booking) => kmMatch(b.description) <= km && isUsable(b))
       if (relevantBookings.length > 0) {
         const avg = relevantBookings.reduce((acc, b) => acc + b.amount, 0) / relevantBookings.length
         return avg
@@ -57,9 +60,25 @@ export const bookEverythingtoBS = (bs: AccountSystemClass): AccountSystemClass =
       const vollgetankt = booking.description.toLowerCase().indexOf("vollgetankt") > -1
         && booking.description.toLowerCase().indexOf("nicht") === -1
       if (vollgetankt) {
-        verbrauchForStatsAccounts = 100 * literSinceLastVollgetankt / (booking.km - kmAtLastVollgetankt)
-        kmAtLastVollgetankt = booking.km
-        literSinceLastVollgetankt = 0
+        const kmSeitLetzterTankung = booking.km - kmAtLastVollgetankt
+        if (kmSeitLetzterTankung > 0) {
+          verbrauchForStatsAccounts = 100 * literSinceLastVollgetankt / kmSeitLetzterTankung
+          kmAtLastVollgetankt = booking.km
+          literSinceLastVollgetankt = 0
+        } else {
+          // Zwei Tankungen auf demselben km-Stand (typisch: doppelt abgeschickter Fahrtenbucheintrag).
+          // Ohne gefahrene Kilometer ist der Verbrauch nicht berechenbar - früher gab das hier
+          // eine Division durch 0, und das Infinity hat sich über das Statistikkonto "Verbrauch"
+          // in Benzingeld, Verrechnungskonten und am Ende in die ganze Bilanz fortgepflanzt.
+          // Wir behalten den letzten bekannten Verbrauch, verwerfen keine Liter und melden den Fall.
+          const text = booking.account + " Tankung ohne gefahrene Kilometer"
+            + "<br>km: " + booking.km + " entspricht dem Stand der letzten Tankung"
+            + "<br>Liter: " + booking.liters
+            + "<br>" + booking.description
+            + "<br>Verbrauch nicht berechenbar, doppelt erfasste Tankung?"
+          const bkErr = new Booking(booking.nr, booking.date, 0, booking.liters, text, booking.liters, 0, bs.Errors.id, bs.Errors1.id)
+          book(bkErr, bs.Errors, bs.Errors1)
+        }
       }
       let benzinpreis = 42.23
       if (euroToNumber(booking.fuelPriceInEuro)) {
